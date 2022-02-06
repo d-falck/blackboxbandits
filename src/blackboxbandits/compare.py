@@ -4,6 +4,7 @@ import os
 import subprocess
 from typing import List, Optional
 from bayesmark.serialize import XRSerializer
+import numpy as np
 
 class BaseOptimizerComparison:
 
@@ -58,11 +59,46 @@ class BaseOptimizerComparison:
         assert self.dbid is not None, "Must run comparison first."
         return self.dbid
 
-    @staticmethod
-    def get_results(dbid: str, db_root: str) -> pd.DataFrame:
+    def get_results(self) -> pd.DataFrame:
+        return self.get_results(self.dbid, self.db_root)
+
+    @classmethod
+    def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
         abs_db_root = os.path.abspath(db_root)
-        agg_data = XRSerializer.load_derived(db_root=abs_db_root, db=dbid, key="perf")
-        return agg_data[0].to_dataframe()
+        saved_eval = XRSerializer.load_derived(db_root=abs_db_root, db=dbid, key="eval")
+        eval = saved_eval[0].to_dataframe()
+        saved_baseline = XRSerializer.load_derived(db_root=abs_db_root, db=dbid, key="baseline")
+        baseline = saved_baseline[0].to_dataframe()
+
+        baseline = baseline[["mean","best"]].groupby(level=["objective","function"]).min()
+        baseline = baseline.unstack(level="objective")
+        baseline.columns = ["visible_baseline", "generalization_baseline", "visible_opt", "generalization_opt"]
+
+        eval = eval.droplevel("suggestion")
+        eval = eval.reorder_levels(["optimizer", "function", "study_id", "iter"])
+        eval = eval.sort_values(eval.index.names)
+        eval = eval.groupby(level=["optimizer","function","study_id"]).min()
+        eval = eval.rename(columns={"_visible_to_opt": "visible"})
+        eval = eval.rename(columns=lambda x: x + "_achieved")
+        data = eval.join(baseline, on="function")
+
+        data["generalization_score"] = cls._constrain(
+            1 - (data["generalization_achieved"] - data["generalization_opt"]) \
+            / (data["generalization_baseline"] - data["generalization_opt"])
+        )
+        data["visible_score"] = cls._constrain(
+            1 - (data["visible_achieved"] - data["visible_opt"]) \
+            / (data["visible_baseline"] - data["visible_opt"])
+        )
+
+        data = data.reindex(sorted(data.columns), axis=1)
+        data.columns = data.columns.str.split("_", expand=True)
+
+        return data
+
+    @staticmethod
+    def _constrain(series):
+        return np.maximum(np.minimum(series, 1), 0)
 
 class MetaOptimizerComparison:
 

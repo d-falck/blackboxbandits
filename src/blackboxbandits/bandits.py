@@ -77,14 +77,25 @@ class StreeterFPML(MultiBandit):
         assert arms == [arm for arms in self.grouped_arms for arm in arms], \
             "Observed rewards must be for the chosen arms"
 
+        # Re-group rewards by internal FPML instance
         i = 0; grouped_rewards = []
         for arms in self.grouped_arms:
             grouped_rewards.append([rewards[j] for j in range(i,i+len(arms))])
             i += len(arms)
 
+        # Create modified 'greedy' rewards
+        max_rewards = [max(rewards) for rewards in grouped_rewards]
+        grouped_modified_rewards = []
+        for t, these_rewards in enumerate(grouped_rewards):
+            cum_max = 0 if t == 0 else max(max_rewards[:t])
+            modified_rewards = [max(reward, cum_max) - cum_max
+                                for reward in these_rewards]
+            grouped_modified_rewards.append(modified_rewards)
+
+        # Feed back to internal FPML instances
         for t in range(self.T_2):
             self.internal_fpml_instances[t].observe_rewards(
-                self.grouped_arms[t], self.grouped_rewards[t]
+                self.grouped_arms[t], self.grouped_modified_rewards[t]
             )
         
         self.grouped_arms = None
