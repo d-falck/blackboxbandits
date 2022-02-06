@@ -37,9 +37,13 @@ class BaseOptimizerComparison:
             "-r": str(self.num_repetitions)
         }
         # Run Bayesmark experiment launcher
-        launcher_command = "bayesmark-launch " + " ".join([key + " " + value for key, value in launcher_args.items()])
+        launcher_command = "bayesmark-launch " + " ".join(
+            [key + " " + value for key, value in launcher_args.items()]
+        )
         launcher_command += " -v"
-        output = subprocess.run(launcher_command, shell=True, capture_output=True)
+        output = subprocess.run(launcher_command,
+                                shell=True,
+                                capture_output=True)
 
         # Get DBID
         stderr = output.stderr.decode("utf-8")
@@ -49,11 +53,16 @@ class BaseOptimizerComparison:
         self.dbid = stderr[dbid_start_index:dbid_end_index]
 
         # Aggregate results
-        subprocess.run(f'bayesmark-agg -dir "{self.db_root}" -b "{self.dbid}"', shell=True, capture_output=True)
+        subprocess.run(
+            f'bayesmark-agg -dir "{self.db_root}" -b "{self.dbid}"',
+            shell=True
+        )
 
         # Analyse results
-        analysis_output = subprocess.run(f'bayesmark-anal -dir "{self.db_root}" -b "{self.dbid}"', shell=True, capture_output=True)
-        self.results = analysis_output.stdout.decode("utf-8")
+        subprocess.run(
+            f'bayesmark-anal -dir "{self.db_root}" -b "{self.dbid}"',
+            shell=True
+        )
 
     def get_dbid(self) -> int:
         assert self.dbid is not None, "Must run comparison first."
@@ -64,24 +73,33 @@ class BaseOptimizerComparison:
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
+        # Read data saved by Bayesmark
         abs_db_root = os.path.abspath(db_root)
-        saved_eval = XRSerializer.load_derived(db_root=abs_db_root, db=dbid, key="eval")
+        saved_eval = XRSerializer.load_derived(db_root=abs_db_root,
+                                               db=dbid,
+                                               key="eval")
         eval = saved_eval[0].to_dataframe()
-        saved_baseline = XRSerializer.load_derived(db_root=abs_db_root, db=dbid, key="baseline")
+        saved_baseline = XRSerializer.load_derived(db_root=abs_db_root,
+                                                   db=dbid,
+                                                   key="baseline")
         baseline = saved_baseline[0].to_dataframe()
 
-        baseline = baseline[["mean","best"]].groupby(level=["objective","function"]).min()
+        # Massage into nice format
+        baseline = baseline[["mean","best"]] \
+            .groupby(level=["objective","function"]).min()
         baseline = baseline.unstack(level="objective")
-        baseline.columns = ["visible_baseline", "generalization_baseline", "visible_opt", "generalization_opt"]
-
+        baseline.columns = ["visible_baseline", "generalization_baseline",
+                            "visible_opt", "generalization_opt"]
         eval = eval.droplevel("suggestion")
-        eval = eval.reorder_levels(["optimizer", "function", "study_id", "iter"])
+        eval = eval.reorder_levels(["optimizer", "function",
+                                    "study_id", "iter"])
         eval = eval.sort_values(eval.index.names)
         eval = eval.groupby(level=["optimizer","function","study_id"]).min()
         eval = eval.rename(columns={"_visible_to_opt": "visible"})
         eval = eval.rename(columns=lambda x: x + "_achieved")
         data = eval.join(baseline, on="function")
 
+        # Calculate normalized scores
         data["generalization_score"] = cls._constrain(
             1 - (data["generalization_achieved"] - data["generalization_opt"]) \
             / (data["generalization_baseline"] - data["generalization_opt"])
@@ -135,11 +153,13 @@ class MetaOptimizerComparison:
             self.db_root)
         base_comparison.run()
         self.dbid = base_comparison.get_dbid()
-        self.base_comparison_data = BaseOptimizerComparison.get_results(self.dbid, self.db_root)
+        self.base_comparison_data = BaseOptimizerComparison \
+            .get_results(self.dbid, self.db_root)
 
     def load_base_comparison(self, dbid: str) -> None:
         self.dbid = dbid
-        self.base_comparison_data = BaseOptimizerComparison.get_results(self.dbid, self.db_root)
+        self.base_comparison_data = BaseOptimizerComparison \
+            .get_results(self.dbid, self.db_root)
 
     def run_meta_comparison(self):
         assert self.dbid is not None, "Must run or load base comparison first."

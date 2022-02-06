@@ -13,16 +13,20 @@ class MultiBandit(ABC):
 
     @abstractmethod
     def select_arms(self) -> List[int]:
-        assert self.round < self.n, "Didn't expect this many rounds."
-        assert not self.expecting_observation, "Must observe rewards before choosing more arms"
+        assert self.round < self.n, \
+            "Didn't expect this many rounds."
+        assert not self.expecting_observation, \
+            "Must observe rewards before choosing more arms"
         
         self.expecting_observation = True
 
     @abstractmethod
     def observe_rewards(self, arms: List[int], rewards: List[float]) -> None:
-        assert self.expecting_observation, "Must choose arms before observing rewards"
+        assert self.expecting_observation, \
+            "Must choose arms before observing rewards"
         assert all(0 <= arm < self.A for arm in arms), "Invalid arms provided"
-        assert all(0 <= reward <= 1 for reward in rewards), "Rewards not in range [0, 1]"
+        assert all(0 <= reward <= 1 for reward in rewards), \
+            "Rewards not in range [0, 1]"
 
         self.expecting_observation = False
         self.round += 1
@@ -50,7 +54,9 @@ class FPML(MultiBandit):
     def observe_rewards(self, arms: List[int], rewards: List[float]) -> None:
         super().observe_rewards(rewards)
         for arm, reward in zip(arms, rewards):
-            estimate = reward*self.A/self.S if arm in self.last_explored_arms else 0
+            estimate = reward*self.A/self.S \
+                       if arm in self.last_explored_arms \
+                       else 0
             self.cum_est_rewards[arm] += estimate
         self.last_explored_arms = None
 
