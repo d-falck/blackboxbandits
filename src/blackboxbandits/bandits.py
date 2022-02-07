@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 
 
-class MultiBandit(ABC):
+class AbstractMultiBandit(ABC):
 
     def __init__(self, A: int, T: int, n: int):
         self.A = A
@@ -32,7 +32,7 @@ class MultiBandit(ABC):
         self.round += 1
 
 
-class FPML(MultiBandit):
+class FPML(AbstractMultiBandit):
 
     def __init__(self, A: int, T: int, n: int, S: int):
         self.S = S
@@ -61,21 +61,18 @@ class FPML(MultiBandit):
         self.last_explored_arms = None
 
 
-class StreeterFPML(MultiBandit):
+class StreeterFPML(AbstractMultiBandit):
 
     def __init__(self, A: int, T: int, T_1: int, T_2: int, S: int, n: int):
         assert T_1 * T_2 == T, "Time parameters must multiply to total budget"
-        self.internal_fpml_instances = [
-            FPML(A=A, T=T_1, S=S, n=n) for _ in range(T_2)
-        ]
+        self.internal_fpml_instances = [FPML(A=A, T=T_1, S=S, n=n)
+                                        for _ in range(T_2)]
         super().__init__(A, T, n)
 
     def select_arms(self) -> List[int]:
         super().select_arms()
-        self.grouped_arms = [
-            self.internal_fpml_instances[t].select_arms()
-            for t in range(self.T_2)
-        ]
+        self.grouped_arms = [self.internal_fpml_instances[t].select_arms()
+                             for t in range(self.T_2)]
         return [arm for arms in self.grouped_arms for arm in arms]
 
     def observe_rewards(self, arms: List[int], rewards: List[float]) -> None:
@@ -105,3 +102,6 @@ class StreeterFPML(MultiBandit):
             )
         
         self.grouped_arms = None
+
+class Streeter(AbstractMultiBandit):
+    pass

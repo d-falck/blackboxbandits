@@ -58,7 +58,7 @@ class BaseOptimizerComparison:
             shell=True
         )
 
-        # Analyse results
+        # Analyse results (will compute baselines which we'll use)
         subprocess.run(
             f'bayesmark-anal -dir "{self.db_root}" -b "{self.dbid}"',
             shell=True
@@ -69,7 +69,7 @@ class BaseOptimizerComparison:
         return self.dbid
 
     def get_results(self) -> pd.DataFrame:
-        return self.get_results(self.dbid, self.db_root)
+        return self.get_results_for_dbid(self.dbid, self.db_root)
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
@@ -164,6 +164,10 @@ class MetaOptimizerComparison:
     def run_meta_comparison(self):
         assert self.dbid is not None, "Must run or load base comparison first."
         self.meta_comparison_completed = True
+
+        for rep in range(self.num_repetitions):
+            comp_data = self.base_comparison_data.xs(rep, level="study_id")
+            
         raise NotImplementedError()
 
     def results(self):
