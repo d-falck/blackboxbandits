@@ -1,5 +1,5 @@
 import pandas as pd
-from .meta_optimizers import AbstractMetaOptimizer
+from .meta import AbstractMetaOptimizer
 import os
 import subprocess
 from typing import List, Optional, Dict
