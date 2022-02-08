@@ -8,10 +8,10 @@ import itertools
 class AbstractMetaOptimizer(ABC):
 
     def __init__(self):
-        self.run = False
+        self.has_run = False
 
     @abstractmethod
-    def run(self, data: pd.DataFrame, function_order: Optional[List[str]]) -> None:
+    def run(self, data: pd.DataFrame, function_order: Optional[List[str]] = None) -> None:
         self.optimizers = data.index.get_level_values("optimizer") \
                                .drop_duplicates().to_series()
         self.functions = data.index.get_level_values("function") \
@@ -25,10 +25,10 @@ class AbstractMetaOptimizer(ABC):
         self.A = self.optimizers.size
         self.n = len(self.functions)
 
-        self.run = True
+        self.has_run = True
 
     def get_results(self) -> pd.DataFrame:
-        assert self.run, "Must run before getting results."
+        assert self.has_run, "Must run before getting results."
         results = pd.DataFrame({
             "visible_score": self.scores_visible,
             "generalization_score": self.scores_generalization
@@ -42,7 +42,7 @@ class BestFixedTAlgos(AbstractMetaOptimizer):
         super().__init__()
         self.T = T
 
-    def run(self, data: pd.DataFrame, function_order: Optional[List[str]]) -> None:
+    def run(self, data: pd.DataFrame, function_order: Optional[List[str]] = None) -> None:
         super().run(data, function_order)
 
         relevant_subsets = list(itertools.combinations(self.optimizers.to_list(), self.T))
@@ -76,7 +76,7 @@ class BanditMetaOptimizer(AbstractMetaOptimizer):
         self.T = T
         self.bandit_kwargs = bandit_kwargs
 
-    def run(self, data: pd.DataFrame, function_order: Optional[List[str]]) -> None:
+    def run(self, data: pd.DataFrame, function_order: Optional[List[str]] = None) -> None:
         super().run(data, function_order)
 
         bandit = self.bandit_type(self.A, self.T, self.n, **self.bandit_kwargs)

@@ -10,6 +10,7 @@ class AbstractMultiBandit(ABC):
         self.T = T
         self.n = n
         self.round = 0
+        self.expecting_observation = False
 
     @abstractmethod
     def select_arms(self) -> List[int]:
@@ -37,7 +38,7 @@ class FPML(AbstractMultiBandit):
     def __init__(self, A: int, T: int, n: int, S: int):
         self.S = S
         self.epsilon = S/A*(np.log(A)/n)**(1/(T-S+1)) # Value from Thm 3.9
-        super().__init__(self, A, T, n)
+        super().__init__(A, T, n)
         self.cum_est_rewards = np.zeros(A)
 
     def select_arms(self) -> List[int]:
@@ -52,7 +53,7 @@ class FPML(AbstractMultiBandit):
         return chosen_arms
 
     def observe_rewards(self, arms: List[int], rewards: List[float]) -> None:
-        super().observe_rewards(rewards)
+        super().observe_rewards(arms, rewards)
         for arm, reward in zip(arms, rewards):
             estimate = reward*self.A/self.S \
                        if arm in self.last_explored_arms \
@@ -76,7 +77,7 @@ class StreeterFPML(AbstractMultiBandit):
         return [arm for arms in self.grouped_arms for arm in arms]
 
     def observe_rewards(self, arms: List[int], rewards: List[float]) -> None:
-        super().select_arms(arms, rewards)
+        super().observe_rewards(arms, rewards)
         assert arms == [arm for arms in self.grouped_arms for arm in arms], \
             "Observed rewards must be for the chosen arms"
 

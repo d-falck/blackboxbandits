@@ -42,28 +42,24 @@ class BaseOptimizerComparison:
             [key + " " + value for key, value in launcher_args.items()]
         )
         launcher_command += " -v"
-        output = subprocess.run(launcher_command,
-                                shell=True,
-                                capture_output=True)
+        p = subprocess.Popen(launcher_command, stderr=subprocess.PIPE, shell=True)
+        while p.poll() is None:
+            l = p.stderr.readline().decode("utf-8")
+            print(l)
+            if "Supply --db" in l:
+                dbid_string = l
 
         # Get DBID
-        stderr = output.stderr.decode("utf-8")
-        dbid_start_index = stderr.find("Supply --db") + len("Supply --db") + 1
-        dbid_end_index = stderr.find("to append to this experiment") - 1
+        dbid_start_index = dbid_string.find("Supply --db") + len("Supply --db") + 1
+        dbid_end_index = dbid_string.find("to append to this experiment") - 1
         assert dbid_start_index != -1 and dbid_end_index != -1
-        self.dbid = stderr[dbid_start_index:dbid_end_index]
+        self.dbid = dbid_string[dbid_start_index:dbid_end_index]
 
         # Aggregate results
-        subprocess.run(
-            f'bayesmark-agg -dir "{self.db_root}" -b "{self.dbid}"',
-            shell=True
-        )
+        os.system(f'bayesmark-agg -dir "{self.db_root}" -b "{self.dbid}"')
 
         # Analyse results (will compute baselines which we'll use)
-        subprocess.run(
-            f'bayesmark-anal -dir "{self.db_root}" -b "{self.dbid}"',
-            shell=True
-        )
+        os.system(f'bayesmark-anal -dir "{self.db_root}" -b "{self.dbid}"')
 
     def get_dbid(self) -> int:
         assert self.dbid is not None, "Must run comparison first."
@@ -155,13 +151,12 @@ class MetaOptimizerComparison:
             self.db_root)
         base_comparison.run()
         self.dbid = base_comparison.get_dbid()
-        self.base_comparison_data = BaseOptimizerComparison \
-            .get_results(self.dbid, self.db_root)
+        self.base_comparison_data = base_comparison.get_results()
 
     def load_base_comparison(self, dbid: str) -> None:
         self.dbid = dbid
         self.base_comparison_data = BaseOptimizerComparison \
-            .get_results(self.dbid, self.db_root)
+            .get_results_for_dbid(self.dbid, self.db_root)
 
     def run_meta_comparison(self):
         assert self.dbid is not None, "Must run or load base comparison first."
@@ -175,12 +170,23 @@ class MetaOptimizerComparison:
                 meta_optimizer.run(comp_data)
                 results.append(meta_optimizer.get_results())
             all_results.append(pd.concat(results, keys=self.meta_optimizers.keys()))
-        self.all_results = pd.concat(all_results, keys=list(range(self.num_repetitions)))
-
-    def results(self):
+        self.all_meta_results = pd.concat(all_results, keys=list(range(self.num_repetitions)))
+        self.all_meta_results.index.rename(["study_id", "optimizer", "function"], inplace=True)
+        self.all_meta_results = self.all_meta_results \
+            .reorder_levels(["optimizer", "function", "study_id"])
+        self.all_meta_results = self.all_meta_results \
+                                .sort_values(self.all_meta_results.index.names)
+    def full_results(self):
         assert self.meta_comparison_completed == True, \
              "Must complete comparison before getting results"
-        return self.all_results
+        base_results = self.base_comparison_data.xs("score", level=1, axis=1) \
+                                        .rename(columns=lambda x: x+"_score")
+        return pd.concat([base_results, self.all_meta_results]) \
+                .groupby(["optimizer", "function"]).mean() \
+                    [["visible_score", "generalization_score"]]
+
+    def summary(self):
+        return self.full_results().groupby(["optimizer"]).mean()
 
     def get_dbid(self):
         assert self.dbid is not None, "Must run or load base comparison first."
