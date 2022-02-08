@@ -1,3 +1,8 @@
+"""Provides implementations of various meta-optimizers, i.e. algorithms to
+choose combinations of single black-box optimizers to run on each task in a
+sequence of optimization tasks.
+"""
+
 from abc import ABC, abstractmethod
 import pandas as pd
 from .bandits import AbstractMultiBandit
@@ -6,55 +11,104 @@ import itertools
 
 
 class AbstractMetaOptimizer(ABC):
+    """Abstract base class for a meta-optimizer.
+    """
 
     def __init__(self):
-        self.has_run = False
+        self._has_run = False
 
     @abstractmethod
-    def run(self, data: pd.DataFrame, function_order: Optional[List[str]] = None) -> None:
-        self.optimizers = data.index.get_level_values("optimizer") \
+    def run(self, data: pd.DataFrame,
+            function_order: Optional[List[str]] = None) -> None:
+        """Run the meta-optimizer on pre-calculated performance data for a set
+        of underlying optimization algorithms.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            A dataframe containing the normalized scores for each of a set of
+            black-box optimizers on a sequence of optimization tasks.
+        function_order : Optional[List[str]], optional
+            A list of the function names appearing in `data` specifying the
+            order in which the tasks should be presented to the meta-optimizer.
+            Defaults to None, in which case the order in the dataframe is used.
+        """
+        self._optimizers = data.index.get_level_values("optimizer") \
                                .drop_duplicates().to_series()
-        self.functions = data.index.get_level_values("function") \
+        self._functions = data.index.get_level_values("function") \
                               .drop_duplicates().to_list()
 
         if function_order is not None:
-            assert set(function_order) == set(self.functions), \
+            assert set(function_order) == set(self._functions), \
                 "Functions in order list doesn't match the functions provided."
-            self.functions = function_order
+            self._functions = function_order
         
-        self.A = self.optimizers.size
-        self.n = len(self.functions)
+        self._A = self._optimizers.size
+        self._n = len(self._functions)
 
-        self.has_run = True
+        self._has_run = True
 
     def get_results(self) -> pd.DataFrame:
-        assert self.has_run, "Must run before getting results."
+        """Get the results from the meta-opzimizer as a dataframe.
+        
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe of the normalized score of the meta-optimizer on
+            each task in the sequence of tasks.
+        """
+        assert self._has_run, "Must run before getting results."
         results = pd.DataFrame({
-            "visible_score": self.scores_visible,
-            "generalization_score": self.scores_generalization
-        }, index=self.functions)
+            "visible_score": self._scores_visible,
+            "generalization_score": self._scores_generalization
+        }, index=self._functions)
         return results
 
 
 class BestFixedTAlgos(AbstractMetaOptimizer):
+    """A meta-optimizer which runs the best possible fixed combination of
+    T algorithms on the presented tasks.
+
+    Implements `AbstractMetaOptimizer`.
+
+    Parameters
+    ----------
+    T : int
+        The number of optimizers to include in the fixed set.
+
+    Attributes
+    ----------
+    Same as parameters, plus:
+    best_subset : List[str]
+        A list of the names of the underlying optimizers in the optimal
+        T-subset found.
+    """
 
     def __init__(self, T: int):
         super().__init__()
         self.T = T
+        self.best_subset = None
 
-    def run(self, data: pd.DataFrame, function_order: Optional[List[str]] = None) -> None:
+    def run(self, data: pd.DataFrame,
+            function_order: Optional[List[str]] = None) -> None:
+        """Implements corresponding method from `AbstractMetaOptimizer`.
+        """
         super().run(data, function_order)
 
-        relevant_subsets = list(itertools.combinations(self.optimizers.to_list(), self.T))
+        relevant_subsets = list(itertools.combinations(
+            self._optimizers.to_list(),
+            self.T
+        ))
 
-        best_scores_visible = [-1]*self.n
+        best_scores_visible = [-1]*self._n
         for subset in relevant_subsets:
             scores_visible = []
             scores_generalization = []
-            for func in self.functions:
+            for func in self._functions:
                 relevant_data = data.loc[pd.IndexSlice[subset, func],:]
                 visible_rewards = relevant_data["visible"]["score"].to_list()
-                generalization_rewards = relevant_data["generalization"]["score"].to_list()
+                generalization_rewards = relevant_data \
+                                         ["generalization"]["score"].to_list()
                 scores_visible.append(max(visible_rewards))
                 scores_generalization.append(max(generalization_rewards))
 
@@ -64,32 +118,54 @@ class BestFixedTAlgos(AbstractMetaOptimizer):
                 best_subset = subset
 
         self.best_subset = best_subset
-        self.scores_visible = best_scores_visible
-        self.scores_generalization = best_scores_generalization
+        self._scores_visible = best_scores_visible
+        self._scores_generalization = best_scores_generalization
 
 
 class BanditMetaOptimizer(AbstractMetaOptimizer):
+    """A meta-optimizer which runs a specified multi-bandit algorithm on the
+    tasks presented.
 
-    def __init__(self, bandit_type: Type[AbstractMultiBandit], T: int, **bandit_kwargs):
+    Parameters
+    ----------
+    bandit_type : Type[bandits.AbstractMultiBandit]
+        The bandit class to be used by this optimizer on the tasks.
+    T : int
+        The number of optimizers the bandit is allowed to run on each task.
+    **bandit_kwargs : dict, optional
+        Keyword parameters for the bandit class constructor.
+
+    Attributes
+    ----------
+    Same as parameters.
+    """
+
+    def __init__(self, bandit_type: Type[AbstractMultiBandit],
+                 T: int, **bandit_kwargs):
         super().__init__()
         self.bandit_type = bandit_type
         self.T = T
         self.bandit_kwargs = bandit_kwargs
 
-    def run(self, data: pd.DataFrame, function_order: Optional[List[str]] = None) -> None:
+    def run(self, data: pd.DataFrame,
+            function_order: Optional[List[str]] = None) -> None:
+        """Implements corresponding method in `AbstractMultiBandit`.
+        """
         super().run(data, function_order)
 
-        bandit = self.bandit_type(self.A, self.T, self.n, **self.bandit_kwargs)
+        bandit = self.bandit_type(self._A, self.T,
+                                  self._n, **self.bandit_kwargs)
 
-        self.scores_visible = []
-        self.scores_generalization = []
-        for func in self.functions:
+        self._scores_visible = []
+        self._scores_generalization = []
+        for func in self._functions:
             arm_indices = bandit.select_arms()
-            optimizers_chosen = self.optimizers[arm_indices].to_list()
+            optimizers_chosen = self._optimizers[arm_indices].to_list()
             rewards = data.loc[pd.IndexSlice[optimizers_chosen,func],:]
             visible_rewards = rewards["visible"]["score"].to_list()
-            generalization_rewards = rewards["generalization"]["score"].to_list()
+            generalization_rewards = rewards \
+                                     ["generalization"]["score"].to_list()
             bandit.observe_rewards(arm_indices, visible_rewards)
 
-            self.scores_visible.append(max(visible_rewards))
-            self.scores_generalization.append(max(generalization_rewards))
+            self._scores_visible.append(max(visible_rewards))
+            self._scores_generalization.append(max(generalization_rewards))

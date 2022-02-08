@@ -1,3 +1,7 @@
+"""Provides interfaces to run experiments comparing black-box optimizers and
+combinations of them (which we call meta-optimizers) on various ML tasks.
+"""
+
 import pandas as pd
 from .meta import AbstractMetaOptimizer
 import os
@@ -8,6 +12,32 @@ import numpy as np
 
 
 class BaseOptimizerComparison:
+    """Interface for comparing standard black-box optimizers on ML tasks.
+
+    Parameters
+    ----------
+    optimizers : List[str]
+        List of standard optimizer names known to Bayesmark.
+    classifiers : List[str]
+        List of sklearn classification methods known to Bayesmark.
+    datasets : List[str]
+        List of classification/regression datasets known to Bayesmark.
+    metrics : List[str]
+        List of loss functions known to Bayesmark. Must include at least one
+        regression and one classification loss function if `datasets` includes
+        both types of task.
+    num_calls : int
+        Number of function evaluations allowed by each optimizer on each task.
+    num_repetitions : int
+        Number of times to repeat the entire experiment for reliability.
+    db_root : str
+        Path to root folder in which a folder for this experiment's data will
+        be created.
+
+    Attributes
+    ----------
+    Same as parameters.
+    """
 
     def __init__(self,
                  optimizers: List[str],
@@ -25,9 +55,13 @@ class BaseOptimizerComparison:
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
-        self.dbid: Optional[str] = None
+        self._dbid: Optional[str] = None
 
     def run(self) -> None:
+        """Run the comparison experiment defined by this class.
+
+        May take a while.
+        """
         launcher_args = {
             "-dir": self.db_root,
             "-o": " ".join(self.optimizers),
@@ -42,7 +76,8 @@ class BaseOptimizerComparison:
             [key + " " + value for key, value in launcher_args.items()]
         )
         launcher_command += " -v"
-        p = subprocess.Popen(launcher_command, stderr=subprocess.PIPE, shell=True)
+        p = subprocess.Popen(launcher_command,
+                             stderr=subprocess.PIPE, shell=True)
         while p.poll() is None:
             l = p.stderr.readline().decode("utf-8")
             print(l)
@@ -50,26 +85,59 @@ class BaseOptimizerComparison:
                 dbid_string = l
 
         # Get DBID
-        dbid_start_index = dbid_string.find("Supply --db") + len("Supply --db") + 1
+        dbid_start_index = dbid_string.find("Supply --db") \
+                            + len("Supply --db") + 1
         dbid_end_index = dbid_string.find("to append to this experiment") - 1
         assert dbid_start_index != -1 and dbid_end_index != -1
-        self.dbid = dbid_string[dbid_start_index:dbid_end_index]
+        self._dbid = dbid_string[dbid_start_index:dbid_end_index]
 
         # Aggregate results
-        os.system(f'bayesmark-agg -dir "{self.db_root}" -b "{self.dbid}"')
+        os.system(f'bayesmark-agg -dir "{self.db_root}" -b "{self._dbid}"')
 
         # Analyse results (will compute baselines which we'll use)
-        os.system(f'bayesmark-anal -dir "{self.db_root}" -b "{self.dbid}"')
+        os.system(f'bayesmark-anal -dir "{self.db_root}" -b "{self._dbid}"')
 
     def get_dbid(self) -> int:
-        assert self.dbid is not None, "Must run comparison first."
-        return self.dbid
+        """Get the unique DBID of this comparison.
+        
+        This is the name of the folder this comparison's data is saved in.
+        Must run comparison first.
+
+        Returns
+        -------
+        int
+            The DBID of this experiment.
+        """
+        assert self._dbid is not None, "Must run comparison first."
+        return self._dbid
 
     def get_results(self) -> pd.DataFrame:
-        return self.get_results_for_dbid(self.dbid, self.db_root)
+        """Get the results of this comparison as a dataframe.
+
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe containing the results of this comparison.
+        """
+        return self.get_results_for_dbid(self._dbid, self.db_root)
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
+        """Get the results of a particular comparison specified by its DBID.
+
+        Parameters
+        ----------
+        dbid : str
+            The DBID of the comparison to get results for.
+        db_root : str
+            Path to the directory containing the folder for
+            the relevant comparison.
+        
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe containing the result of the specified comparison.
+        """
         # Read data saved by Bayesmark
         abs_db_root = os.path.abspath(db_root)
         saved_eval = XRSerializer.load_derived(db_root=abs_db_root,
@@ -117,6 +185,38 @@ class BaseOptimizerComparison:
 
 
 class MetaOptimizerComparison:
+    """Interface for comparing *combinations* of standard black-box
+    optimizers on ML tasks.
+
+    Parameters
+    ----------
+    meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+        Dictionary whose values are the instantiated meta-optimizers to include
+        in this comparison (these will choose combinations of the base optimizers
+        defined below) and whose keys are the names used to refer to them.
+    base_optimizers : List[str]
+        List of standard optimizer names known to Bayesmark to be used as the
+        base optimizers for this comparison.
+    classifiers : List[str]
+        List of sklearn classification methods known to Bayesmark.
+    datasets : List[str]
+        List of classification/regression datasets known to Bayesmark.
+    metrics : List[str]
+        List of loss functions known to Bayesmark. Must include at least one
+        regression and one classification loss function if `datasets` includes
+        both types of task.
+    num_calls : int
+        Number of function evaluations allowed by each optimizer on each task.
+    num_repetitions : int
+        Number of times to repeat the entire experiment for reliability.
+    db_root : str
+        Path to root folder in which a folder for this experiment's data will
+        be created.
+
+    Attributes
+    ----------
+    Same as parameters.
+    """
 
     def __init__(self,
                  meta_optimizers: Dict[str, AbstractMetaOptimizer],
@@ -136,11 +236,15 @@ class MetaOptimizerComparison:
         self.num_repetitions = num_repetitions
         self.db_root = db_root
         
-        self.dbid: Optional[str] = None
+        self._dbid: Optional[str] = None
 
-        self.meta_comparison_completed = False
+        self._meta_comparison_completed = False
 
     def run_base_comparison(self) -> None:
+        """Run the base optimizers on the relevant tasks for this experiment.
+
+        May take a while.
+        """
         base_comparison = BaseOptimizerComparison(
             self.base_optimizers,
             self.classifiers,
@@ -150,44 +254,96 @@ class MetaOptimizerComparison:
             self.num_repetitions,
             self.db_root)
         base_comparison.run()
-        self.dbid = base_comparison.get_dbid()
-        self.base_comparison_data = base_comparison.get_results()
+        self._dbid = base_comparison.get_dbid()
+        self._base_comparison_data = base_comparison.get_results()
 
     def load_base_comparison(self, dbid: str) -> None:
-        self.dbid = dbid
-        self.base_comparison_data = BaseOptimizerComparison \
-            .get_results_for_dbid(self.dbid, self.db_root)
+        """Load data from a previously run comparison of the base optimizers
+        for this experiment.
+
+        The DBID must correspond to a comparison of the correct base optimizers
+        for this meta_comparison.
+
+        Parameters
+        ----------
+        dbid : str
+            The DBID for the saved data to be loaded.
+        """
+        self._dbid = dbid
+        self._base_comparison_data = BaseOptimizerComparison \
+            .get_results_for_dbid(self._dbid, self.db_root)
 
     def run_meta_comparison(self):
-        assert self.dbid is not None, "Must run or load base comparison first."
-        self.meta_comparison_completed = True
+        """Run the comparison of meta-optimizers over the base optimizers.
+
+        Must have first run or loaded the base optimizer comparison.
+        """
+        assert self._dbid is not None, "Must run or load base comparison first."
+        self._meta_comparison_completed = True
 
         all_results = []
         for rep in range(self.num_repetitions):
             results = []
             for meta_optimizer in self.meta_optimizers.values():
-                comp_data = self.base_comparison_data.xs(rep, level="study_id")
+                comp_data = self._base_comparison_data.xs(rep, level="study_id")
                 meta_optimizer.run(comp_data)
                 results.append(meta_optimizer.get_results())
-            all_results.append(pd.concat(results, keys=self.meta_optimizers.keys()))
-        self.all_meta_results = pd.concat(all_results, keys=list(range(self.num_repetitions)))
-        self.all_meta_results.index.rename(["study_id", "optimizer", "function"], inplace=True)
-        self.all_meta_results = self.all_meta_results \
+            all_results.append(pd.concat(results,
+                                         keys=self.meta_optimizers.keys()))
+        self._all_meta_results = pd.concat(
+            all_results,
+            keys=list(range(self.num_repetitions))
+        )
+        self._all_meta_results.index.rename(
+            ["study_id", "optimizer", "function"],
+            inplace=True
+        )
+        self._all_meta_results = self._all_meta_results \
             .reorder_levels(["optimizer", "function", "study_id"])
-        self.all_meta_results = self.all_meta_results \
-                                .sort_values(self.all_meta_results.index.names)
-    def full_results(self):
-        assert self.meta_comparison_completed == True, \
+        self._all_meta_results = self._all_meta_results \
+                                .sort_values(self._all_meta_results.index.names)
+    def full_results(self) -> pd.DataFrame:
+        """Get the full results of this meta-comparison as a dataframe.
+        
+        Must have run the meta-comparison first.
+        
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe containing the average visible and generalization scores
+            for each base and each meta optimizer, on each task.
+        """
+        assert self._meta_comparison_completed == True, \
              "Must complete comparison before getting results"
-        base_results = self.base_comparison_data.xs("score", level=1, axis=1) \
+        base_results = self._base_comparison_data.xs("score", level=1, axis=1) \
                                         .rename(columns=lambda x: x+"_score")
-        return pd.concat([base_results, self.all_meta_results]) \
+        return pd.concat([base_results, self._all_meta_results]) \
                 .groupby(["optimizer", "function"]).mean() \
                     [["visible_score", "generalization_score"]]
 
-    def summary(self):
+    def summary(self) -> pd.DataFrame:
+        """Get summarized results of this meta-comparison as a dataframe.
+        
+        Must have run the meta-comparison first.
+        
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe containing visible and generalization scores
+            for each base and each meta optimizer averaged over all tasks.
+        """
         return self.full_results().groupby(["optimizer"]).mean()
 
     def get_dbid(self):
-        assert self.dbid is not None, "Must run or load base comparison first."
-        return self.dbid
+        """Get the unique DBID associated with the base optimizer comparison
+        for this experiment.
+
+        Must run or load base comparison first.
+
+        Returns
+        -------
+        int
+            The DBID of this base comparison for this experiment.
+        """
+        assert self._dbid is not None, "Must run or load base comparison first."
+        return self._dbid
