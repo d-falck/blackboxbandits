@@ -2,9 +2,10 @@ import pandas as pd
 from .meta_optimizers import AbstractMetaOptimizer
 import os
 import subprocess
-from typing import List, Optional
+from typing import List, Optional, Dict
 from bayesmark.serialize import XRSerializer
 import numpy as np
+
 
 class BaseOptimizerComparison:
 
@@ -118,10 +119,11 @@ class BaseOptimizerComparison:
     def _constrain(series):
         return np.maximum(np.minimum(series, 1), 0)
 
+
 class MetaOptimizerComparison:
 
     def __init__(self,
-                 meta_optimizers: List[AbstractMetaOptimizer],
+                 meta_optimizers: Dict[str, AbstractMetaOptimizer],
                  base_optimizers: List[str],
                  classifiers: List[str],
                  datasets: List[str],
@@ -165,13 +167,21 @@ class MetaOptimizerComparison:
         assert self.dbid is not None, "Must run or load base comparison first."
         self.meta_comparison_completed = True
 
+        all_results = []
         for rep in range(self.num_repetitions):
-            comp_data = self.base_comparison_data.xs(rep, level="study_id")
-            
-        raise NotImplementedError()
+            results = []
+            for meta_optimizer in self.meta_optimizers.values():
+                comp_data = self.base_comparison_data.xs(rep, level="study_id")
+                meta_optimizer.run(comp_data)
+                results.append(meta_optimizer.get_results())
+            all_results.append(pd.concat(results, keys=self.meta_optimizers.keys()))
+        self.all_results = pd.concat(all_results, keys=list(range(self.num_repetitions)))
 
     def results(self):
-        raise NotImplementedError()
+        assert self.meta_comparison_completed == True, \
+             "Must complete comparison before getting results"
+        return self.all_results
 
     def get_dbid(self):
-        raise NotImplementedError()
+        assert self.dbid is not None, "Must run or load base comparison first."
+        return self.dbid
