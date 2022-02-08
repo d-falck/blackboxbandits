@@ -1,8 +1,7 @@
 # Bandits for Black Box Optimization
-## System level dependencies
 
-```
-sudo apt-get install libsqlite3-0
-sudo apt-get install libsqlite3-dev
-```
+A package for comparing black-box optimization algorithms and bandit combinations of them on online streams of ML hyperparameter-selection tasks.
 
+## Installation
+
+Run `pip install -e .` from the root directory.
