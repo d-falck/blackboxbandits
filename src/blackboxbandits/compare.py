@@ -6,7 +6,7 @@ import pandas as pd
 from .meta import AbstractMetaOptimizer
 import os
 import subprocess
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from bayesmark.serialize import XRSerializer
 import numpy as np
 from datetime import datetime
@@ -170,15 +170,16 @@ class BaseOptimizerComparison:
         
         pool = Pool() if self.num_workers is None else Pool(self.num_workers)
         for _ in tqdm.tqdm(pool.imap_unordered(self._process_individual_command,
-                                               job_commands.values()),
-                           total=len(job_commands.values())):
+                                               job_commands.items()),
+                           total=len(job_commands.items()),
+                           smoothing=0):
             pass
         pool.close()
         pool.join()
         print("Finished processing all jobs.")
 
-    def _process_individual_command(self, cmd: str):
-        subprocess.run(cmd, shell=True)
+    def _process_individual_command(self, job: Tuple[str, str]):
+        subprocess.run(job[1], shell=True)
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
