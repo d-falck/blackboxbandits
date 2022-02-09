@@ -4,7 +4,7 @@ A package for comparing black-box optimization algorithms and bandit combination
 
 ## Installation
 
-Run `pip install -e .` from the root directory. I will add dependencies soon but these include `bayesmark[optimizers]` as well as `pandas`, `numpy`, etc.
+Run `pip install -e .` from the root directory.
 
 ## Documentation
 
