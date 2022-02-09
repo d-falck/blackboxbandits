@@ -266,6 +266,12 @@ class MetaOptimizerComparison:
     db_root : str
         Path to root folder in which a folder for this experiment's data will
         be created.
+    parallel : bool, optional
+        Whether to run the base experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
 
     Attributes
     ----------
@@ -280,7 +286,9 @@ class MetaOptimizerComparison:
                  metrics: List[str],
                  num_calls: int,
                  num_repetitions: int,
-                 db_root: str):
+                 db_root: str,
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None):
         self.meta_optimizers = meta_optimizers
         self.base_optimizers = base_optimizers
         self.classifiers = classifiers
@@ -306,7 +314,9 @@ class MetaOptimizerComparison:
             self.metrics,
             self.num_calls,
             self.num_repetitions,
-            self.db_root)
+            self.db_root,
+            self.parallel,
+            self.num_workers)
         base_comparison.run()
         self._dbid = base_comparison.get_dbid()
         self._base_comparison_data = base_comparison.get_results()
