@@ -153,8 +153,8 @@ class BanditMetaOptimizer(AbstractMetaOptimizer):
         """
         super().run(data, function_order)
 
-        bandit = self.bandit_type(self._A, self.T,
-                                  self._n, **self.bandit_kwargs)
+        bandit = self.bandit_type(A=self._A, T=self.T,
+                                  n=self._n, **self.bandit_kwargs)
 
         self._scores_visible = []
         self._scores_generalization = []
@@ -162,10 +162,14 @@ class BanditMetaOptimizer(AbstractMetaOptimizer):
             arm_indices = bandit.select_arms()
             optimizers_chosen = self._optimizers[arm_indices].to_list()
             rewards = data.loc[pd.IndexSlice[optimizers_chosen,func],:]
-            visible_rewards = rewards["visible"]["score"].to_list()
-            generalization_rewards = rewards \
-                                     ["generalization"]["score"].to_list()
-            bandit.observe_rewards(arm_indices, visible_rewards)
+            visible_rewards = rewards["visible"]["score"] \
+                              [optimizers_chosen].to_list()
+            generalization_rewards = rewards["generalization"]["score"] \
+                                     [optimizers_chosen].to_list()
+            try:
+                bandit.observe_rewards(arm_indices, visible_rewards)
+            except:
+                import ipdb; ipdb.set_trace()
 
             self._scores_visible.append(max(visible_rewards))
             self._scores_generalization.append(max(generalization_rewards))

@@ -77,6 +77,7 @@ class AbstractMultiBandit(ABC):
         """
         assert self.expecting_observation, \
             "Must choose arms before observing rewards"
+        assert len(arms) == len(rewards), "Must have a reward for each arm"
         assert all(0 <= arm < self.A for arm in arms), "Invalid arms provided"
         assert all(0 <= reward <= 1 for reward in rewards), \
             "Rewards not in range [0, 1]"
@@ -165,6 +166,9 @@ class StreeterFPML(AbstractMultiBandit):
 
     def __init__(self, A: int, T: int, T_1: int, T_2: int, n: int, S: int = 1):
         assert T_1 * T_2 == T, "Time parameters must multiply to total budget"
+        self.T_1 = T_1
+        self.T_2 = T_2
+        self.S = S
         self._internal_fpml_instances = [FPML(A=A, T=T_1, S=S, n=n)
                                         for _ in range(T_2)]
         super().__init__(A, T, n)
@@ -187,9 +191,9 @@ class StreeterFPML(AbstractMultiBandit):
         # Re-group rewards by internal FPML instance
         i = 0; grouped_rewards = []
         for arms in self._grouped_arms:
-            grouped_rewards.append([rewards[j] for j in range(i,i+len(arms))])
+            grouped_rewards.append(rewards[i:i+len(arms)])
             i += len(arms)
-
+        
         # Create modified 'greedy' rewards
         max_rewards = [max(rewards) for rewards in grouped_rewards]
         grouped_modified_rewards = []
