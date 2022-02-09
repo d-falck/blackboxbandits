@@ -11,8 +11,9 @@ from bayesmark.serialize import XRSerializer
 import numpy as np
 from datetime import datetime
 from tempfile import mkdtemp
-from multiprocessing import Pool
+from multiprocess import Pool
 import tqdm
+import time
 
 
 class BaseOptimizerComparison:
@@ -93,14 +94,18 @@ class BaseOptimizerComparison:
         }
         if self.parallel: # Will create list of independent commands to run
             # Approximate number of indep. experiments in this comparison
-            launcher_args["-nj"] = len(self.optimizers) * len(self.datasets) \
-                                 * len(self.classifiers) * self.num_repetitions
+            launcher_args["-nj"] = str(len(self.optimizers) * len(self.datasets) \
+                                 * len(self.classifiers) * self.num_repetitions)
 
             # Generate dbid for whole batch
             folder_prefix = datetime.utcnow().strftime("bo_%Y%m%d_%H%M%S_")
             exp_subdir = mkdtemp(prefix=folder_prefix, dir=self.db_root)
-            dbid = os.path.basename(exp_subdir)
-            launcher_args["-b"] = dbid
+            self._dbid = os.path.basename(exp_subdir)
+            launcher_args["-b"] = self._dbid
+
+            # Setup dbid folder
+            for name in ["derived", "log", "eval", "time", "suggest_log"]:
+                os.mkdir(os.path.join(exp_subdir, name))
 
         # Run Bayesmark experiment launcher
         launcher_command = "bayesmark-launch " + " ".join(
@@ -115,16 +120,16 @@ class BaseOptimizerComparison:
             if "Supply --db" in l:
                 dbid_string = l
 
-        # Get DBID
-        dbid_start_index = dbid_string.find("Supply --db") \
-                            + len("Supply --db") + 1
-        dbid_end_index = dbid_string.find("to append to this experiment") - 1
-        assert dbid_start_index != -1 and dbid_end_index != -1
-        self._dbid = dbid_string[dbid_start_index:dbid_end_index]
-
         # If parallel we now need to run the generated commands
         if self.parallel:
             self._run_parallel_commands(self._dbid)
+        else:
+            # Get DBID
+            dbid_start_index = dbid_string.find("Supply --db") \
+                                + len("Supply --db") + 1
+            dbid_end_index = dbid_string.find("to append to this experiment") - 1
+            assert dbid_start_index != -1 and dbid_end_index != -1
+            self._dbid = dbid_string[dbid_start_index:dbid_end_index]
 
         # Aggregate results
         os.system(f'bayesmark-agg -dir "{self.db_root}" -b "{self._dbid}"')
@@ -163,17 +168,17 @@ class BaseOptimizerComparison:
         job_commands = {job[:cmd_start_idx-1]: job[cmd_start_idx:].strip()
                         for job in jobs}
         
-        self.progress_bar = tqdm.tqdm(total=len(job_commands))
         pool = Pool() if self.num_workers is None else Pool(self.num_workers)
-        pool.map(self._process_individual_command, job_commands.values())
+        for _ in tqdm.tqdm(pool.imap_unordered(self._process_individual_command,
+                                               job_commands.values()),
+                           total=len(job_commands.values())):
+            pass
         pool.close()
         pool.join()
-        self.progress_bar.close()
         print("Finished processing all jobs.")
 
     def _process_individual_command(self, cmd: str):
         subprocess.run(cmd, shell=True)
-        self.progress_bar.update(1)
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
@@ -297,6 +302,8 @@ class MetaOptimizerComparison:
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
+        self.parallel = parallel
+        self.num_workers = num_workers
         
         self._dbid: Optional[str] = None
 
