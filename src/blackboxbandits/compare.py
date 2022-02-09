@@ -9,6 +9,10 @@ import subprocess
 from typing import List, Optional, Dict
 from bayesmark.serialize import XRSerializer
 import numpy as np
+from datetime import datetime
+from tempfile import mkdtemp
+from multiprocessing import Pool
+import tqdm
 
 
 class BaseOptimizerComparison:
@@ -33,6 +37,12 @@ class BaseOptimizerComparison:
     db_root : str
         Path to root folder in which a folder for this experiment's data will
         be created.
+    parallel : bool, optional
+        Whether to run the experiments as a pool of tasks across multiple worker
+        threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
 
     Attributes
     ----------
@@ -46,7 +56,9 @@ class BaseOptimizerComparison:
                  metrics: List[str],
                  num_calls: int,
                  num_repetitions: int,
-                 db_root: str):
+                 db_root: str,
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None):
         
         self.optimizers = optimizers
         self.classifiers = classifiers
@@ -55,12 +67,20 @@ class BaseOptimizerComparison:
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
+        self.parallel = parallel
+        self.num_workers = num_workers
         self._dbid: Optional[str] = None
 
     def run(self) -> None:
         """Run the comparison experiment defined by this class.
 
-        May take a while.
+        May take a while, depending on whether parallelisation is enabled.
+
+        Notes
+        -----
+
+        If parallelisation is enabled, this generates and uses a temporary
+        file `jobs.txt` in the current directory.
         """
         launcher_args = {
             "-dir": self.db_root,
@@ -71,6 +91,17 @@ class BaseOptimizerComparison:
             "-n": str(self.num_calls),
             "-r": str(self.num_repetitions)
         }
+        if self.parallel: # Will create list of independent commands to run
+            # Approximate number of indep. experiments in this comparison
+            launcher_args["-nj"] = len(self.optimizers) * len(self.datasets) \
+                                 * len(self.classifiers) * self.num_repetitions
+
+            # Generate dbid for whole batch
+            folder_prefix = datetime.utcnow().strftime("bo_%Y%m%d_%H%M%S_")
+            exp_subdir = mkdtemp(prefix=folder_prefix, dir=self.db_root)
+            dbid = os.path.basename(exp_subdir)
+            launcher_args["-b"] = dbid
+
         # Run Bayesmark experiment launcher
         launcher_command = "bayesmark-launch " + " ".join(
             [key + " " + value for key, value in launcher_args.items()]
@@ -90,6 +121,10 @@ class BaseOptimizerComparison:
         dbid_end_index = dbid_string.find("to append to this experiment") - 1
         assert dbid_start_index != -1 and dbid_end_index != -1
         self._dbid = dbid_string[dbid_start_index:dbid_end_index]
+
+        # If parallel we now need to run the generated commands
+        if self.parallel:
+            self._run_parallel_commands(self._dbid)
 
         # Aggregate results
         os.system(f'bayesmark-agg -dir "{self.db_root}" -b "{self._dbid}"')
@@ -120,6 +155,25 @@ class BaseOptimizerComparison:
             A dataframe containing the results of this comparison.
         """
         return self.get_results_for_dbid(self._dbid, self.db_root)
+
+    def _run_parallel_commands(self, dbid: int) -> None:
+        with open("./jobs.txt","r") as f:
+            jobs = f.readlines()[2:]
+        cmd_start_idx = jobs[0].find("bayesmark-exp")
+        job_commands = {job[:cmd_start_idx-1]: job[cmd_start_idx:].strip()
+                        for job in jobs}
+        
+        self.progress_bar = tqdm.tqdm(total=len(job_commands))
+        pool = Pool() if self.num_workers is None else Pool(self.num_workers)
+        pool.map(self._process_individual_command, job_commands.values())
+        pool.close()
+        pool.join()
+        self.progress_bar.close()
+        print("Finished processing all jobs.")
+
+    def _process_individual_command(self, cmd: str):
+        subprocess.run(cmd, shell=True)
+        self.progress_bar.update(1)
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
