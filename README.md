@@ -4,7 +4,7 @@ A package for comparing black-box optimization algorithms and bandit combination
 
 ## Installation
 
-Run `!pip install git+https://github.com/d-falck/blackboxbandits.git`.
+Run `pip install git+https://github.com/d-falck/blackboxbandits.git`.
 
 ## Documentation
 
