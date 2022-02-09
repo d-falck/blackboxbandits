@@ -11,7 +11,7 @@ from bayesmark.serialize import XRSerializer
 import numpy as np
 from datetime import datetime
 from tempfile import mkdtemp
-from multiprocess import Pool
+from multiprocess import Pool, Lock
 import tqdm
 import time
 
@@ -168,6 +168,7 @@ class BaseOptimizerComparison:
         job_commands = {job[:cmd_start_idx-1]: job[cmd_start_idx:].strip()
                         for job in jobs}
         
+        self.lock = Lock()
         pool = Pool() if self.num_workers is None else Pool(self.num_workers)
         for _ in tqdm.tqdm(pool.imap_unordered(self._process_individual_command,
                                                job_commands.items()),
@@ -179,7 +180,11 @@ class BaseOptimizerComparison:
         print("Finished processing all jobs.")
 
     def _process_individual_command(self, job: Tuple[str, str]):
+        with self.lock:
+            print("Starting job", job[0])
         subprocess.run(job[1], shell=True)
+        with self.lock:
+            print("Finished job", job[0])
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
