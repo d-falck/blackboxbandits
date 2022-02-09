@@ -6,6 +6,8 @@ A package for comparing black-box optimization algorithms and bandit combination
 
 Run `pip install git+https://github.com/d-falck/blackboxbandits.git`.
 
+_Note it may be necessary to use my forked version of Bayesmark to avoid one assertion error; this can be installed by cloning the repo `https://github.com/d-falck/bayesmark` and running `pip install -e .`._
+
 ## Documentation
 
 Docs auto-generated at https://d-falck.github.io/blackboxbandits/.
