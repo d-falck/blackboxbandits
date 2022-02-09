@@ -8,7 +8,7 @@ Run `pip install git+https://github.com/d-falck/blackboxbandits.git`.
 
 ## Documentation
 
-Documentation auto-generated at https://d-falck.github.io/blackboxbandits/.
+Docs auto-generated at https://d-falck.github.io/blackboxbandits/.
 
 ## Example usage and data
 
