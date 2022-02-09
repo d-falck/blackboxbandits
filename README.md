@@ -4,4 +4,12 @@ A package for comparing black-box optimization algorithms and bandit combination
 
 ## Installation
 
-Run `pip install -e .` from the root directory.
+Run `pip install -e .` from the root directory. I will add dependencies soon but these include `bayesmark[optimizers]` as well as `pandas`, `numpy`, etc.
+
+## Documentation
+
+Documentation auto-generated at https://d-falck.github.io/blackboxbandits/.
+
+## Example usage and data
+
+Example usage found in notebooks in the `notebooks` directory. Data from previously-run comparisons located in `notebooks/data`.
