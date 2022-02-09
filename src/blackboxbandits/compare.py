@@ -168,23 +168,31 @@ class BaseOptimizerComparison:
         job_commands = {job[:cmd_start_idx-1]: job[cmd_start_idx:].strip()
                         for job in jobs}
         
-        self.lock = Lock()
-        pool = Pool() if self.num_workers is None else Pool(self.num_workers)
-        for _ in tqdm.tqdm(pool.imap_unordered(self._process_individual_command,
-                                               job_commands.items()),
-                           total=len(job_commands.items()),
-                           smoothing=0):
-            pass
+        l = Lock() # We'll make `lock' global among pooled processes
+        pool = Pool(self.num_workers, initializer=self._pool_init, initargs=(l,)) \
+               if self.num_workers is not None \
+               else Pool(initializer=self._pool_init, initargs=(l,))
+        print(f"Starting processing {len(job_commands)} jobs.")
+        pool.map(self._process_individual_command, job_commands.items())
         pool.close()
         pool.join()
         print("Finished processing all jobs.")
 
     def _process_individual_command(self, job: Tuple[str, str]):
-        with self.lock:
+        with lock:
             print("Starting job", job[0])
-        subprocess.run(job[1], shell=True)
-        with self.lock:
-            print("Finished job", job[0])
+        try:
+            subprocess.run(job[1], shell=True)
+        except:
+            with lock:
+                print(f"Job {job[0]} failed")
+        else:
+            with lock:
+                print("Finished job", job[0])
+            
+    def _pool_init(self, l):
+        global lock
+        lock = l
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -> pd.DataFrame:
