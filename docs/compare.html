@@ -37,9 +37,14 @@ import pandas as pd
 from .meta import AbstractMetaOptimizer
 import os
 import subprocess
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from bayesmark.serialize import XRSerializer
 import numpy as np
+from datetime import datetime
+from tempfile import mkdtemp
+from multiprocess import Pool, Lock
+import tqdm
+import time
 
 
 class BaseOptimizerComparison:
@@ -64,6 +69,12 @@ class BaseOptimizerComparison:
     db_root : str
         Path to root folder in which a folder for this experiment&#39;s data will
         be created.
+    parallel : bool, optional
+        Whether to run the experiments as a pool of tasks across multiple worker
+        threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
 
     Attributes
     ----------
@@ -77,7 +88,9 @@ class BaseOptimizerComparison:
                  metrics: List[str],
                  num_calls: int,
                  num_repetitions: int,
-                 db_root: str):
+                 db_root: str,
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None):
         
         self.optimizers = optimizers
         self.classifiers = classifiers
@@ -86,12 +99,20 @@ class BaseOptimizerComparison:
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
+        self.parallel = parallel
+        self.num_workers = num_workers
         self._dbid: Optional[str] = None
 
     def run(self) -&gt; None:
         &#34;&#34;&#34;Run the comparison experiment defined by this class.
 
-        May take a while.
+        May take a while, depending on whether parallelisation is enabled.
+
+        Notes
+        -----
+
+        If parallelisation is enabled, this generates and uses a temporary
+        file `jobs.txt` in the current directory.
         &#34;&#34;&#34;
         launcher_args = {
             &#34;-dir&#34;: self.db_root,
@@ -102,6 +123,21 @@ class BaseOptimizerComparison:
             &#34;-n&#34;: str(self.num_calls),
             &#34;-r&#34;: str(self.num_repetitions)
         }
+        if self.parallel: # Will create list of independent commands to run
+            # Approximate number of indep. experiments in this comparison
+            launcher_args[&#34;-nj&#34;] = str(len(self.optimizers) * len(self.datasets) \
+                                 * len(self.classifiers) * self.num_repetitions)
+
+            # Generate dbid for whole batch
+            folder_prefix = datetime.utcnow().strftime(&#34;bo_%Y%m%d_%H%M%S_&#34;)
+            exp_subdir = mkdtemp(prefix=folder_prefix, dir=self.db_root)
+            self._dbid = os.path.basename(exp_subdir)
+            launcher_args[&#34;-b&#34;] = self._dbid
+
+            # Setup dbid folder
+            for name in [&#34;derived&#34;, &#34;log&#34;, &#34;eval&#34;, &#34;time&#34;, &#34;suggest_log&#34;]:
+                os.mkdir(os.path.join(exp_subdir, name))
+
         # Run Bayesmark experiment launcher
         launcher_command = &#34;bayesmark-launch &#34; + &#34; &#34;.join(
             [key + &#34; &#34; + value for key, value in launcher_args.items()]
@@ -115,12 +151,16 @@ class BaseOptimizerComparison:
             if &#34;Supply --db&#34; in l:
                 dbid_string = l
 
-        # Get DBID
-        dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
-                            + len(&#34;Supply --db&#34;) + 1
-        dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
-        assert dbid_start_index != -1 and dbid_end_index != -1
-        self._dbid = dbid_string[dbid_start_index:dbid_end_index]
+        # If parallel we now need to run the generated commands
+        if self.parallel:
+            self._run_parallel_commands(self._dbid)
+        else:
+            # Get DBID
+            dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
+                                + len(&#34;Supply --db&#34;) + 1
+            dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
+            assert dbid_start_index != -1 and dbid_end_index != -1
+            self._dbid = dbid_string[dbid_start_index:dbid_end_index]
 
         # Aggregate results
         os.system(f&#39;bayesmark-agg -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)
@@ -151,6 +191,39 @@ class BaseOptimizerComparison:
             A dataframe containing the results of this comparison.
         &#34;&#34;&#34;
         return self.get_results_for_dbid(self._dbid, self.db_root)
+
+    def _run_parallel_commands(self, dbid: int) -&gt; None:
+        with open(&#34;./jobs.txt&#34;,&#34;r&#34;) as f:
+            jobs = f.readlines()[2:]
+        cmd_start_idx = jobs[0].find(&#34;bayesmark-exp&#34;)
+        job_commands = {job[:cmd_start_idx-1]: job[cmd_start_idx:].strip()
+                        for job in jobs}
+        
+        l = Lock() # We&#39;ll make `lock&#39; global among pooled processes
+        pool = Pool(self.num_workers, initializer=self._pool_init, initargs=(l,)) \
+               if self.num_workers is not None \
+               else Pool(initializer=self._pool_init, initargs=(l,))
+        print(f&#34;Starting processing {len(job_commands)} jobs.&#34;)
+        pool.map(self._process_individual_command, job_commands.items())
+        pool.close()
+        pool.join()
+        print(&#34;Finished processing all jobs.&#34;)
+
+    def _process_individual_command(self, job: Tuple[str, str]):
+        with lock:
+            print(&#34;Starting job&#34;, job[0])
+        try:
+            subprocess.run(job[1], shell=True)
+        except:
+            with lock:
+                print(f&#34;Job {job[0]} failed&#34;)
+        else:
+            with lock:
+                print(&#34;Finished job&#34;, job[0])
+            
+    def _pool_init(self, l):
+        global lock
+        lock = l
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -&gt; pd.DataFrame:
@@ -243,6 +316,12 @@ class MetaOptimizerComparison:
     db_root : str
         Path to root folder in which a folder for this experiment&#39;s data will
         be created.
+    parallel : bool, optional
+        Whether to run the base experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
 
     Attributes
     ----------
@@ -257,7 +336,9 @@ class MetaOptimizerComparison:
                  metrics: List[str],
                  num_calls: int,
                  num_repetitions: int,
-                 db_root: str):
+                 db_root: str,
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None):
         self.meta_optimizers = meta_optimizers
         self.base_optimizers = base_optimizers
         self.classifiers = classifiers
@@ -266,6 +347,8 @@ class MetaOptimizerComparison:
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
+        self.parallel = parallel
+        self.num_workers = num_workers
         
         self._dbid: Optional[str] = None
 
@@ -283,7 +366,9 @@ class MetaOptimizerComparison:
             self.metrics,
             self.num_calls,
             self.num_repetitions,
-            self.db_root)
+            self.db_root,
+            self.parallel,
+            self.num_workers)
         base_comparison.run()
         self._dbid = base_comparison.get_dbid()
         self._base_comparison_data = base_comparison.get_results()
@@ -391,7 +476,7 @@ class MetaOptimizerComparison:
 <dl>
 <dt id="blackboxbandits.compare.BaseOptimizerComparison"><code class="flex name class">
 <span>class <span class="ident">BaseOptimizerComparison</span></span>
-<span>(</span><span>optimizers: List[str], classifiers: List[str], datasets: List[str], metrics: List[str], num_calls: int, num_repetitions: int, db_root: str)</span>
+<span>(</span><span>optimizers: List[str], classifiers: List[str], datasets: List[str], metrics: List[str], num_calls: int, num_repetitions: int, db_root: str, parallel: bool = False, num_workers: Optional[int] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Interface for comparing standard black-box optimizers on ML tasks.</p>
@@ -414,6 +499,12 @@ both types of task.</dd>
 <dt><strong><code>db_root</code></strong> :&ensp;<code>str</code></dt>
 <dd>Path to root folder in which a folder for this experiment's data will
 be created.</dd>
+<dt><strong><code>parallel</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to run the experiments as a pool of tasks across multiple worker
+threads or not. Defaults to False.</dd>
+<dt><strong><code>num_workers</code></strong> :&ensp;<code>Optional[int]</code>, optional</dt>
+<dd>Number of worker processes to use if parallelisation is enabled. If not
+specified defaults to the number of cpu cores.</dd>
 </dl>
 <h2 id="attributes">Attributes</h2>
 <p>Same as parameters.</p></div>
@@ -443,6 +534,12 @@ be created.</dd>
     db_root : str
         Path to root folder in which a folder for this experiment&#39;s data will
         be created.
+    parallel : bool, optional
+        Whether to run the experiments as a pool of tasks across multiple worker
+        threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
 
     Attributes
     ----------
@@ -456,7 +553,9 @@ be created.</dd>
                  metrics: List[str],
                  num_calls: int,
                  num_repetitions: int,
-                 db_root: str):
+                 db_root: str,
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None):
         
         self.optimizers = optimizers
         self.classifiers = classifiers
@@ -465,12 +564,20 @@ be created.</dd>
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
+        self.parallel = parallel
+        self.num_workers = num_workers
         self._dbid: Optional[str] = None
 
     def run(self) -&gt; None:
         &#34;&#34;&#34;Run the comparison experiment defined by this class.
 
-        May take a while.
+        May take a while, depending on whether parallelisation is enabled.
+
+        Notes
+        -----
+
+        If parallelisation is enabled, this generates and uses a temporary
+        file `jobs.txt` in the current directory.
         &#34;&#34;&#34;
         launcher_args = {
             &#34;-dir&#34;: self.db_root,
@@ -481,6 +588,21 @@ be created.</dd>
             &#34;-n&#34;: str(self.num_calls),
             &#34;-r&#34;: str(self.num_repetitions)
         }
+        if self.parallel: # Will create list of independent commands to run
+            # Approximate number of indep. experiments in this comparison
+            launcher_args[&#34;-nj&#34;] = str(len(self.optimizers) * len(self.datasets) \
+                                 * len(self.classifiers) * self.num_repetitions)
+
+            # Generate dbid for whole batch
+            folder_prefix = datetime.utcnow().strftime(&#34;bo_%Y%m%d_%H%M%S_&#34;)
+            exp_subdir = mkdtemp(prefix=folder_prefix, dir=self.db_root)
+            self._dbid = os.path.basename(exp_subdir)
+            launcher_args[&#34;-b&#34;] = self._dbid
+
+            # Setup dbid folder
+            for name in [&#34;derived&#34;, &#34;log&#34;, &#34;eval&#34;, &#34;time&#34;, &#34;suggest_log&#34;]:
+                os.mkdir(os.path.join(exp_subdir, name))
+
         # Run Bayesmark experiment launcher
         launcher_command = &#34;bayesmark-launch &#34; + &#34; &#34;.join(
             [key + &#34; &#34; + value for key, value in launcher_args.items()]
@@ -494,12 +616,16 @@ be created.</dd>
             if &#34;Supply --db&#34; in l:
                 dbid_string = l
 
-        # Get DBID
-        dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
-                            + len(&#34;Supply --db&#34;) + 1
-        dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
-        assert dbid_start_index != -1 and dbid_end_index != -1
-        self._dbid = dbid_string[dbid_start_index:dbid_end_index]
+        # If parallel we now need to run the generated commands
+        if self.parallel:
+            self._run_parallel_commands(self._dbid)
+        else:
+            # Get DBID
+            dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
+                                + len(&#34;Supply --db&#34;) + 1
+            dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
+            assert dbid_start_index != -1 and dbid_end_index != -1
+            self._dbid = dbid_string[dbid_start_index:dbid_end_index]
 
         # Aggregate results
         os.system(f&#39;bayesmark-agg -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)
@@ -530,6 +656,39 @@ be created.</dd>
             A dataframe containing the results of this comparison.
         &#34;&#34;&#34;
         return self.get_results_for_dbid(self._dbid, self.db_root)
+
+    def _run_parallel_commands(self, dbid: int) -&gt; None:
+        with open(&#34;./jobs.txt&#34;,&#34;r&#34;) as f:
+            jobs = f.readlines()[2:]
+        cmd_start_idx = jobs[0].find(&#34;bayesmark-exp&#34;)
+        job_commands = {job[:cmd_start_idx-1]: job[cmd_start_idx:].strip()
+                        for job in jobs}
+        
+        l = Lock() # We&#39;ll make `lock&#39; global among pooled processes
+        pool = Pool(self.num_workers, initializer=self._pool_init, initargs=(l,)) \
+               if self.num_workers is not None \
+               else Pool(initializer=self._pool_init, initargs=(l,))
+        print(f&#34;Starting processing {len(job_commands)} jobs.&#34;)
+        pool.map(self._process_individual_command, job_commands.items())
+        pool.close()
+        pool.join()
+        print(&#34;Finished processing all jobs.&#34;)
+
+    def _process_individual_command(self, job: Tuple[str, str]):
+        with lock:
+            print(&#34;Starting job&#34;, job[0])
+        try:
+            subprocess.run(job[1], shell=True)
+        except:
+            with lock:
+                print(f&#34;Job {job[0]} failed&#34;)
+        else:
+            with lock:
+                print(&#34;Finished job&#34;, job[0])
+            
+    def _pool_init(self, l):
+        global lock
+        lock = l
 
     @classmethod
     def get_results_for_dbid(cls, dbid: str, db_root: str) -&gt; pd.DataFrame:
@@ -740,7 +899,10 @@ Must run comparison first.</p>
 </code></dt>
 <dd>
 <div class="desc"><p>Run the comparison experiment defined by this class.</p>
-<p>May take a while.</p></div>
+<p>May take a while, depending on whether parallelisation is enabled.</p>
+<h2 id="notes">Notes</h2>
+<p>If parallelisation is enabled, this generates and uses a temporary
+file <code>jobs.txt</code> in the current directory.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -748,7 +910,13 @@ Must run comparison first.</p>
 <pre><code class="python">def run(self) -&gt; None:
     &#34;&#34;&#34;Run the comparison experiment defined by this class.
 
-    May take a while.
+    May take a while, depending on whether parallelisation is enabled.
+
+    Notes
+    -----
+
+    If parallelisation is enabled, this generates and uses a temporary
+    file `jobs.txt` in the current directory.
     &#34;&#34;&#34;
     launcher_args = {
         &#34;-dir&#34;: self.db_root,
@@ -759,6 +927,21 @@ Must run comparison first.</p>
         &#34;-n&#34;: str(self.num_calls),
         &#34;-r&#34;: str(self.num_repetitions)
     }
+    if self.parallel: # Will create list of independent commands to run
+        # Approximate number of indep. experiments in this comparison
+        launcher_args[&#34;-nj&#34;] = str(len(self.optimizers) * len(self.datasets) \
+                             * len(self.classifiers) * self.num_repetitions)
+
+        # Generate dbid for whole batch
+        folder_prefix = datetime.utcnow().strftime(&#34;bo_%Y%m%d_%H%M%S_&#34;)
+        exp_subdir = mkdtemp(prefix=folder_prefix, dir=self.db_root)
+        self._dbid = os.path.basename(exp_subdir)
+        launcher_args[&#34;-b&#34;] = self._dbid
+
+        # Setup dbid folder
+        for name in [&#34;derived&#34;, &#34;log&#34;, &#34;eval&#34;, &#34;time&#34;, &#34;suggest_log&#34;]:
+            os.mkdir(os.path.join(exp_subdir, name))
+
     # Run Bayesmark experiment launcher
     launcher_command = &#34;bayesmark-launch &#34; + &#34; &#34;.join(
         [key + &#34; &#34; + value for key, value in launcher_args.items()]
@@ -772,12 +955,16 @@ Must run comparison first.</p>
         if &#34;Supply --db&#34; in l:
             dbid_string = l
 
-    # Get DBID
-    dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
-                        + len(&#34;Supply --db&#34;) + 1
-    dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
-    assert dbid_start_index != -1 and dbid_end_index != -1
-    self._dbid = dbid_string[dbid_start_index:dbid_end_index]
+    # If parallel we now need to run the generated commands
+    if self.parallel:
+        self._run_parallel_commands(self._dbid)
+    else:
+        # Get DBID
+        dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
+                            + len(&#34;Supply --db&#34;) + 1
+        dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
+        assert dbid_start_index != -1 and dbid_end_index != -1
+        self._dbid = dbid_string[dbid_start_index:dbid_end_index]
 
     # Aggregate results
     os.system(f&#39;bayesmark-agg -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)
@@ -790,7 +977,7 @@ Must run comparison first.</p>
 </dd>
 <dt id="blackboxbandits.compare.MetaOptimizerComparison"><code class="flex name class">
 <span>class <span class="ident">MetaOptimizerComparison</span></span>
-<span>(</span><span>meta_optimizers: Dict[str, <a title="blackboxbandits.meta.AbstractMetaOptimizer" href="meta.html#blackboxbandits.meta.AbstractMetaOptimizer">AbstractMetaOptimizer</a>], base_optimizers: List[str], classifiers: List[str], datasets: List[str], metrics: List[str], num_calls: int, num_repetitions: int, db_root: str)</span>
+<span>(</span><span>meta_optimizers: Dict[str, <a title="blackboxbandits.meta.AbstractMetaOptimizer" href="meta.html#blackboxbandits.meta.AbstractMetaOptimizer">AbstractMetaOptimizer</a>], base_optimizers: List[str], classifiers: List[str], datasets: List[str], metrics: List[str], num_calls: int, num_repetitions: int, db_root: str, parallel: bool = False, num_workers: Optional[int] = None)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Interface for comparing <em>combinations</em> of standard black-box
@@ -819,6 +1006,12 @@ both types of task.</dd>
 <dt><strong><code>db_root</code></strong> :&ensp;<code>str</code></dt>
 <dd>Path to root folder in which a folder for this experiment's data will
 be created.</dd>
+<dt><strong><code>parallel</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to run the base experiments as a pool of tasks across multiple
+worker threads or not. Defaults to False.</dd>
+<dt><strong><code>num_workers</code></strong> :&ensp;<code>Optional[int]</code>, optional</dt>
+<dd>Number of worker processes to use if parallelisation is enabled. If not
+specified defaults to the number of cpu cores.</dd>
 </dl>
 <h2 id="attributes">Attributes</h2>
 <p>Same as parameters.</p></div>
@@ -854,6 +1047,12 @@ be created.</dd>
     db_root : str
         Path to root folder in which a folder for this experiment&#39;s data will
         be created.
+    parallel : bool, optional
+        Whether to run the base experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
 
     Attributes
     ----------
@@ -868,7 +1067,9 @@ be created.</dd>
                  metrics: List[str],
                  num_calls: int,
                  num_repetitions: int,
-                 db_root: str):
+                 db_root: str,
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None):
         self.meta_optimizers = meta_optimizers
         self.base_optimizers = base_optimizers
         self.classifiers = classifiers
@@ -877,6 +1078,8 @@ be created.</dd>
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
+        self.parallel = parallel
+        self.num_workers = num_workers
         
         self._dbid: Optional[str] = None
 
@@ -894,7 +1097,9 @@ be created.</dd>
             self.metrics,
             self.num_calls,
             self.num_repetitions,
-            self.db_root)
+            self.db_root,
+            self.parallel,
+            self.num_workers)
         base_comparison.run()
         self._dbid = base_comparison.get_dbid()
         self._base_comparison_data = base_comparison.get_results()
@@ -1115,7 +1320,9 @@ for this meta_comparison.</p>
         self.metrics,
         self.num_calls,
         self.num_repetitions,
-        self.db_root)
+        self.db_root,
+        self.parallel,
+        self.num_workers)
     base_comparison.run()
     self._dbid = base_comparison.get_dbid()
     self._base_comparison_data = base_comparison.get_results()</code></pre>

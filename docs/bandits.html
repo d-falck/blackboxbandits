@@ -31,7 +31,7 @@
 &#34;&#34;&#34;
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 import numpy as np
 
 
@@ -106,6 +106,7 @@ class AbstractMultiBandit(ABC):
         &#34;&#34;&#34;
         assert self.expecting_observation, \
             &#34;Must choose arms before observing rewards&#34;
+        assert len(arms) == len(rewards), &#34;Must have a reward for each arm&#34;
         assert all(0 &lt;= arm &lt; self.A for arm in arms), &#34;Invalid arms provided&#34;
         assert all(0 &lt;= reward &lt;= 1 for reward in rewards), \
             &#34;Rewards not in range [0, 1]&#34;
@@ -194,6 +195,9 @@ class StreeterFPML(AbstractMultiBandit):
 
     def __init__(self, A: int, T: int, T_1: int, T_2: int, n: int, S: int = 1):
         assert T_1 * T_2 == T, &#34;Time parameters must multiply to total budget&#34;
+        self.T_1 = T_1
+        self.T_2 = T_2
+        self.S = S
         self._internal_fpml_instances = [FPML(A=A, T=T_1, S=S, n=n)
                                         for _ in range(T_2)]
         super().__init__(A, T, n)
@@ -216,9 +220,9 @@ class StreeterFPML(AbstractMultiBandit):
         # Re-group rewards by internal FPML instance
         i = 0; grouped_rewards = []
         for arms in self._grouped_arms:
-            grouped_rewards.append([rewards[j] for j in range(i,i+len(arms))])
+            grouped_rewards.append(rewards[i:i+len(arms)])
             i += len(arms)
-
+        
         # Create modified &#39;greedy&#39; rewards
         max_rewards = [max(rewards) for rewards in grouped_rewards]
         grouped_modified_rewards = []
@@ -237,8 +241,98 @@ class StreeterFPML(AbstractMultiBandit):
         self._grouped_arms = None
 
 
-# class Streeter(AbstractMultiBandit):
-#     pass</code></pre>
+class Exp3(AbstractMultiBandit):
+    &#34;&#34;&#34;Implementation of the standard Exp3 algorithm.
+
+    Implements `AbstractMultiBandit`, but cannot recommend
+    more than one arm per round.
+
+    Parameters
+    ----------
+    A : int
+        Number of arms available to choose from. Arms are subsequently referred
+        to by their zero-indexed number.
+    n : int
+        Number of arms expected overall. Not actually used.
+    gamma : Optional[float], optional
+        Exploration parameter in [0,1] determining the probability of selecting
+        an arm uniformly at each round. Chooses a good value if not provided.
+
+    Attributes
+    ----------
+    Same as parameters.
+    &#34;&#34;&#34;
+
+    def __init__(self, A: int, n: int, gamma: Optional[float] = None):
+        self.gamma = gamma if gamma is not None \
+                           else np.sqrt(A*np.log(A))/(2/3*n*(np.e-1)) # Check this
+        self._weights = np.ones(A)
+        super().__init__(A=A, T=1, n=n)
+
+    def select_arms(self) -&gt; List[int]:
+        &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+
+        Will always return a list of length 1.
+        &#34;&#34;&#34;
+        super().select_arms()
+        prob_dist = (1-self.gamma) * self._weights / self._weights.sum() \
+                + self.gamma / self.A
+        self._arm = np.random.choice(np.arange(self.A), p=prob_dist)
+        self._prob_chosen = prob_dist[self._arm]
+        return [self._arm]
+
+    def observe_rewards(self, arms: List[int], rewards: List[int]) -&gt; None:
+        &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+
+        The provided lists are required to be of length 1.
+        &#34;&#34;&#34;
+        super().observe_rewards(arms, rewards)
+        assert len(arms) == 1 and len(rewards) == 1, \
+            &#34;Only one arm and reward should be provided.&#34;
+        assert arms[0] == self._arm, &#34;Arm doesn&#39;t match the selected arm.&#34;
+        reward = rewards[0]
+        est_reward = reward / self._prob_chosen
+        self._weights[self._arm] *= np.exp(self.gamma * est_reward / self.A)
+
+class Streeter(AbstractMultiBandit):
+    &#34;&#34;&#34;Implementation of the standard Streeter online greedy algorithm
+    (for unit-time actions) under partial feedback.
+    
+    Implements `AbstractMultiBandit`.
+
+    Parameters
+    ----------
+    Same as parent class plus:
+    gamma : Optional[float], optional
+        Exploration probability for underlying Exp3 instances. Chooses a good
+        value if not used.
+
+    Attributes
+    ----------
+    Same as parameters.
+    &#34;&#34;&#34;
+    
+    def __init__(self, A: int, T: int, n: int, gamma: Optional[float]=None):
+        self.gamma = gamma
+        self._internal_exp3_instances = [Exp3(A=A, n=n, gamma=gamma)
+                                         for _ in range(T)]
+        super().__init__(A, T, n)
+
+    def select_arms(self) -&gt; List[int]:
+        &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+        &#34;&#34;&#34;
+        super().select_arms()
+        self._arms = [exp3.select_arms()[0]
+                      for exp3 in self._internal_exp3_instances]
+        return self._arms
+
+    def observe_rewards(self, arms: List[int], rewards: List[int]) -&gt; None:
+        &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+        &#34;&#34;&#34;
+        super().observe_rewards(arms, rewards)
+        for t, exp3 in enumerate(self._internal_exp3_instances):
+            r = rewards[0] if t == 0 else max(rewards[:(t+1)]) - max(rewards[:t])
+            exp3.observe_rewards([arms[t]], [r])</code></pre>
 </details>
 </section>
 <section>
@@ -352,6 +446,7 @@ for the arms it just chose.</p></div>
         &#34;&#34;&#34;
         assert self.expecting_observation, \
             &#34;Must choose arms before observing rewards&#34;
+        assert len(arms) == len(rewards), &#34;Must have a reward for each arm&#34;
         assert all(0 &lt;= arm &lt; self.A for arm in arms), &#34;Invalid arms provided&#34;
         assert all(0 &lt;= reward &lt;= 1 for reward in rewards), \
             &#34;Rewards not in range [0, 1]&#34;
@@ -365,7 +460,9 @@ for the arms it just chose.</p></div>
 </ul>
 <h3>Subclasses</h3>
 <ul class="hlist">
+<li><a title="blackboxbandits.bandits.Exp3" href="#blackboxbandits.bandits.Exp3">Exp3</a></li>
 <li><a title="blackboxbandits.bandits.FPML" href="#blackboxbandits.bandits.FPML">FPML</a></li>
+<li><a title="blackboxbandits.bandits.Streeter" href="#blackboxbandits.bandits.Streeter">Streeter</a></li>
 <li><a title="blackboxbandits.bandits.StreeterFPML" href="#blackboxbandits.bandits.StreeterFPML">StreeterFPML</a></li>
 </ul>
 <h3>Methods</h3>
@@ -406,6 +503,7 @@ def observe_rewards(self, arms: List[int], rewards: List[float]) -&gt; None:
     &#34;&#34;&#34;
     assert self.expecting_observation, \
         &#34;Must choose arms before observing rewards&#34;
+    assert len(arms) == len(rewards), &#34;Must have a reward for each arm&#34;
     assert all(0 &lt;= arm &lt; self.A for arm in arms), &#34;Invalid arms provided&#34;
     assert all(0 &lt;= reward &lt;= 1 for reward in rewards), \
         &#34;Rewards not in range [0, 1]&#34;
@@ -448,6 +546,140 @@ def select_arms(self) -&gt; List[int]:
         &#34;Must observe rewards before choosing more arms&#34;
     
     self.expecting_observation = True</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="blackboxbandits.bandits.Exp3"><code class="flex name class">
+<span>class <span class="ident">Exp3</span></span>
+<span>(</span><span>A: int, n: int, gamma: Optional[float] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Implementation of the standard Exp3 algorithm.</p>
+<p>Implements <code><a title="blackboxbandits.bandits.AbstractMultiBandit" href="#blackboxbandits.bandits.AbstractMultiBandit">AbstractMultiBandit</a></code>, but cannot recommend
+more than one arm per round.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>A</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of arms available to choose from. Arms are subsequently referred
+to by their zero-indexed number.</dd>
+<dt><strong><code>n</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of arms expected overall. Not actually used.</dd>
+<dt><strong><code>gamma</code></strong> :&ensp;<code>Optional[float]</code>, optional</dt>
+<dd>Exploration parameter in [0,1] determining the probability of selecting
+an arm uniformly at each round. Chooses a good value if not provided.</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<p>Same as parameters.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Exp3(AbstractMultiBandit):
+    &#34;&#34;&#34;Implementation of the standard Exp3 algorithm.
+
+    Implements `AbstractMultiBandit`, but cannot recommend
+    more than one arm per round.
+
+    Parameters
+    ----------
+    A : int
+        Number of arms available to choose from. Arms are subsequently referred
+        to by their zero-indexed number.
+    n : int
+        Number of arms expected overall. Not actually used.
+    gamma : Optional[float], optional
+        Exploration parameter in [0,1] determining the probability of selecting
+        an arm uniformly at each round. Chooses a good value if not provided.
+
+    Attributes
+    ----------
+    Same as parameters.
+    &#34;&#34;&#34;
+
+    def __init__(self, A: int, n: int, gamma: Optional[float] = None):
+        self.gamma = gamma if gamma is not None \
+                           else np.sqrt(A*np.log(A))/(2/3*n*(np.e-1)) # Check this
+        self._weights = np.ones(A)
+        super().__init__(A=A, T=1, n=n)
+
+    def select_arms(self) -&gt; List[int]:
+        &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+
+        Will always return a list of length 1.
+        &#34;&#34;&#34;
+        super().select_arms()
+        prob_dist = (1-self.gamma) * self._weights / self._weights.sum() \
+                + self.gamma / self.A
+        self._arm = np.random.choice(np.arange(self.A), p=prob_dist)
+        self._prob_chosen = prob_dist[self._arm]
+        return [self._arm]
+
+    def observe_rewards(self, arms: List[int], rewards: List[int]) -&gt; None:
+        &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+
+        The provided lists are required to be of length 1.
+        &#34;&#34;&#34;
+        super().observe_rewards(arms, rewards)
+        assert len(arms) == 1 and len(rewards) == 1, \
+            &#34;Only one arm and reward should be provided.&#34;
+        assert arms[0] == self._arm, &#34;Arm doesn&#39;t match the selected arm.&#34;
+        reward = rewards[0]
+        est_reward = reward / self._prob_chosen
+        self._weights[self._arm] *= np.exp(self.gamma * est_reward / self.A)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="blackboxbandits.bandits.AbstractMultiBandit" href="#blackboxbandits.bandits.AbstractMultiBandit">AbstractMultiBandit</a></li>
+<li>abc.ABC</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="blackboxbandits.bandits.Exp3.observe_rewards"><code class="name flex">
+<span>def <span class="ident">observe_rewards</span></span>(<span>self, arms: List[int], rewards: List[int]) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Implements the corresponding method from <code><a title="blackboxbandits.bandits.AbstractMultiBandit" href="#blackboxbandits.bandits.AbstractMultiBandit">AbstractMultiBandit</a></code>.</p>
+<p>The provided lists are required to be of length 1.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def observe_rewards(self, arms: List[int], rewards: List[int]) -&gt; None:
+    &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+
+    The provided lists are required to be of length 1.
+    &#34;&#34;&#34;
+    super().observe_rewards(arms, rewards)
+    assert len(arms) == 1 and len(rewards) == 1, \
+        &#34;Only one arm and reward should be provided.&#34;
+    assert arms[0] == self._arm, &#34;Arm doesn&#39;t match the selected arm.&#34;
+    reward = rewards[0]
+    est_reward = reward / self._prob_chosen
+    self._weights[self._arm] *= np.exp(self.gamma * est_reward / self.A)</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.bandits.Exp3.select_arms"><code class="name flex">
+<span>def <span class="ident">select_arms</span></span>(<span>self) ‑> List[int]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Implements the corresponding method from <code><a title="blackboxbandits.bandits.AbstractMultiBandit" href="#blackboxbandits.bandits.AbstractMultiBandit">AbstractMultiBandit</a></code>.</p>
+<p>Will always return a list of length 1.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def select_arms(self) -&gt; List[int]:
+    &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+
+    Will always return a list of length 1.
+    &#34;&#34;&#34;
+    super().select_arms()
+    prob_dist = (1-self.gamma) * self._weights / self._weights.sum() \
+            + self.gamma / self.A
+    self._arm = np.random.choice(np.arange(self.A), p=prob_dist)
+    self._prob_chosen = prob_dist[self._arm]
+    return [self._arm]</code></pre>
 </details>
 </dd>
 </dl>
@@ -582,6 +814,112 @@ rewards at each round.</dd>
 </dd>
 </dl>
 </dd>
+<dt id="blackboxbandits.bandits.Streeter"><code class="flex name class">
+<span>class <span class="ident">Streeter</span></span>
+<span>(</span><span>A: int, T: int, n: int, gamma: Optional[float] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Implementation of the standard Streeter online greedy algorithm
+(for unit-time actions) under partial feedback.</p>
+<p>Implements <code><a title="blackboxbandits.bandits.AbstractMultiBandit" href="#blackboxbandits.bandits.AbstractMultiBandit">AbstractMultiBandit</a></code>.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt>Same as parent class plus:</dt>
+<dt><strong><code>gamma</code></strong> :&ensp;<code>Optional[float]</code>, optional</dt>
+<dd>Exploration probability for underlying Exp3 instances. Chooses a good
+value if not used.</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<p>Same as parameters.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Streeter(AbstractMultiBandit):
+    &#34;&#34;&#34;Implementation of the standard Streeter online greedy algorithm
+    (for unit-time actions) under partial feedback.
+    
+    Implements `AbstractMultiBandit`.
+
+    Parameters
+    ----------
+    Same as parent class plus:
+    gamma : Optional[float], optional
+        Exploration probability for underlying Exp3 instances. Chooses a good
+        value if not used.
+
+    Attributes
+    ----------
+    Same as parameters.
+    &#34;&#34;&#34;
+    
+    def __init__(self, A: int, T: int, n: int, gamma: Optional[float]=None):
+        self.gamma = gamma
+        self._internal_exp3_instances = [Exp3(A=A, n=n, gamma=gamma)
+                                         for _ in range(T)]
+        super().__init__(A, T, n)
+
+    def select_arms(self) -&gt; List[int]:
+        &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+        &#34;&#34;&#34;
+        super().select_arms()
+        self._arms = [exp3.select_arms()[0]
+                      for exp3 in self._internal_exp3_instances]
+        return self._arms
+
+    def observe_rewards(self, arms: List[int], rewards: List[int]) -&gt; None:
+        &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+        &#34;&#34;&#34;
+        super().observe_rewards(arms, rewards)
+        for t, exp3 in enumerate(self._internal_exp3_instances):
+            r = rewards[0] if t == 0 else max(rewards[:(t+1)]) - max(rewards[:t])
+            exp3.observe_rewards([arms[t]], [r])</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="blackboxbandits.bandits.AbstractMultiBandit" href="#blackboxbandits.bandits.AbstractMultiBandit">AbstractMultiBandit</a></li>
+<li>abc.ABC</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="blackboxbandits.bandits.Streeter.observe_rewards"><code class="name flex">
+<span>def <span class="ident">observe_rewards</span></span>(<span>self, arms: List[int], rewards: List[int]) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Implements the corresponding method from <code><a title="blackboxbandits.bandits.AbstractMultiBandit" href="#blackboxbandits.bandits.AbstractMultiBandit">AbstractMultiBandit</a></code>.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def observe_rewards(self, arms: List[int], rewards: List[int]) -&gt; None:
+    &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+    &#34;&#34;&#34;
+    super().observe_rewards(arms, rewards)
+    for t, exp3 in enumerate(self._internal_exp3_instances):
+        r = rewards[0] if t == 0 else max(rewards[:(t+1)]) - max(rewards[:t])
+        exp3.observe_rewards([arms[t]], [r])</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.bandits.Streeter.select_arms"><code class="name flex">
+<span>def <span class="ident">select_arms</span></span>(<span>self) ‑> List[int]</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Implements the corresponding method from <code><a title="blackboxbandits.bandits.AbstractMultiBandit" href="#blackboxbandits.bandits.AbstractMultiBandit">AbstractMultiBandit</a></code>.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def select_arms(self) -&gt; List[int]:
+    &#34;&#34;&#34;Implements the corresponding method from `AbstractMultiBandit`.
+    &#34;&#34;&#34;
+    super().select_arms()
+    self._arms = [exp3.select_arms()[0]
+                  for exp3 in self._internal_exp3_instances]
+    return self._arms</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
 <dt id="blackboxbandits.bandits.StreeterFPML"><code class="flex name class">
 <span>class <span class="ident">StreeterFPML</span></span>
 <span>(</span><span>A: int, T: int, T_1: int, T_2: int, n: int, S: int = 1)</span>
@@ -637,6 +975,9 @@ Defaults to 1.</dd>
 
     def __init__(self, A: int, T: int, T_1: int, T_2: int, n: int, S: int = 1):
         assert T_1 * T_2 == T, &#34;Time parameters must multiply to total budget&#34;
+        self.T_1 = T_1
+        self.T_2 = T_2
+        self.S = S
         self._internal_fpml_instances = [FPML(A=A, T=T_1, S=S, n=n)
                                         for _ in range(T_2)]
         super().__init__(A, T, n)
@@ -659,9 +1000,9 @@ Defaults to 1.</dd>
         # Re-group rewards by internal FPML instance
         i = 0; grouped_rewards = []
         for arms in self._grouped_arms:
-            grouped_rewards.append([rewards[j] for j in range(i,i+len(arms))])
+            grouped_rewards.append(rewards[i:i+len(arms)])
             i += len(arms)
-
+        
         # Create modified &#39;greedy&#39; rewards
         max_rewards = [max(rewards) for rewards in grouped_rewards]
         grouped_modified_rewards = []
@@ -705,9 +1046,9 @@ Defaults to 1.</dd>
     # Re-group rewards by internal FPML instance
     i = 0; grouped_rewards = []
     for arms in self._grouped_arms:
-        grouped_rewards.append([rewards[j] for j in range(i,i+len(arms))])
+        grouped_rewards.append(rewards[i:i+len(arms)])
         i += len(arms)
-
+    
     # Create modified &#39;greedy&#39; rewards
     max_rewards = [max(rewards) for rewards in grouped_rewards]
     grouped_modified_rewards = []
@@ -770,10 +1111,24 @@ Defaults to 1.</dd>
 </ul>
 </li>
 <li>
+<h4><code><a title="blackboxbandits.bandits.Exp3" href="#blackboxbandits.bandits.Exp3">Exp3</a></code></h4>
+<ul class="">
+<li><code><a title="blackboxbandits.bandits.Exp3.observe_rewards" href="#blackboxbandits.bandits.Exp3.observe_rewards">observe_rewards</a></code></li>
+<li><code><a title="blackboxbandits.bandits.Exp3.select_arms" href="#blackboxbandits.bandits.Exp3.select_arms">select_arms</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="blackboxbandits.bandits.FPML" href="#blackboxbandits.bandits.FPML">FPML</a></code></h4>
 <ul class="">
 <li><code><a title="blackboxbandits.bandits.FPML.observe_rewards" href="#blackboxbandits.bandits.FPML.observe_rewards">observe_rewards</a></code></li>
 <li><code><a title="blackboxbandits.bandits.FPML.select_arms" href="#blackboxbandits.bandits.FPML.select_arms">select_arms</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="blackboxbandits.bandits.Streeter" href="#blackboxbandits.bandits.Streeter">Streeter</a></code></h4>
+<ul class="">
+<li><code><a title="blackboxbandits.bandits.Streeter.observe_rewards" href="#blackboxbandits.bandits.Streeter.observe_rewards">observe_rewards</a></code></li>
+<li><code><a title="blackboxbandits.bandits.Streeter.select_arms" href="#blackboxbandits.bandits.Streeter.select_arms">select_arms</a></code></li>
 </ul>
 </li>
 <li>

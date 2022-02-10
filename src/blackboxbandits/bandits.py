@@ -2,7 +2,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 import numpy as np
 
 
@@ -212,5 +212,95 @@ class StreeterFPML(AbstractMultiBandit):
         self._grouped_arms = None
 
 
-# class Streeter(AbstractMultiBandit):
-#     pass
+class Exp3(AbstractMultiBandit):
+    """Implementation of the standard Exp3 algorithm.
+
+    Implements `AbstractMultiBandit`, but cannot recommend
+    more than one arm per round.
+
+    Parameters
+    ----------
+    A : int
+        Number of arms available to choose from. Arms are subsequently referred
+        to by their zero-indexed number.
+    n : int
+        Number of arms expected overall. Not actually used.
+    gamma : Optional[float], optional
+        Exploration parameter in [0,1] determining the probability of selecting
+        an arm uniformly at each round. Chooses a good value if not provided.
+
+    Attributes
+    ----------
+    Same as parameters.
+    """
+
+    def __init__(self, A: int, n: int, gamma: Optional[float] = None):
+        self.gamma = gamma if gamma is not None \
+                           else np.sqrt(A*np.log(A))/(2/3*n*(np.e-1)) # Check this
+        self._weights = np.ones(A)
+        super().__init__(A=A, T=1, n=n)
+
+    def select_arms(self) -> List[int]:
+        """Implements the corresponding method from `AbstractMultiBandit`.
+
+        Will always return a list of length 1.
+        """
+        super().select_arms()
+        prob_dist = (1-self.gamma) * self._weights / self._weights.sum() \
+                + self.gamma / self.A
+        self._arm = np.random.choice(np.arange(self.A), p=prob_dist)
+        self._prob_chosen = prob_dist[self._arm]
+        return [self._arm]
+
+    def observe_rewards(self, arms: List[int], rewards: List[int]) -> None:
+        """Implements the corresponding method from `AbstractMultiBandit`.
+
+        The provided lists are required to be of length 1.
+        """
+        super().observe_rewards(arms, rewards)
+        assert len(arms) == 1 and len(rewards) == 1, \
+            "Only one arm and reward should be provided."
+        assert arms[0] == self._arm, "Arm doesn't match the selected arm."
+        reward = rewards[0]
+        est_reward = reward / self._prob_chosen
+        self._weights[self._arm] *= np.exp(self.gamma * est_reward / self.A)
+
+class Streeter(AbstractMultiBandit):
+    """Implementation of the standard Streeter online greedy algorithm
+    (for unit-time actions) under partial feedback.
+    
+    Implements `AbstractMultiBandit`.
+
+    Parameters
+    ----------
+    Same as parent class plus:
+    gamma : Optional[float], optional
+        Exploration probability for underlying Exp3 instances. Chooses a good
+        value if not used.
+
+    Attributes
+    ----------
+    Same as parameters.
+    """
+    
+    def __init__(self, A: int, T: int, n: int, gamma: Optional[float]=None):
+        self.gamma = gamma
+        self._internal_exp3_instances = [Exp3(A=A, n=n, gamma=gamma)
+                                         for _ in range(T)]
+        super().__init__(A, T, n)
+
+    def select_arms(self) -> List[int]:
+        """Implements the corresponding method from `AbstractMultiBandit`.
+        """
+        super().select_arms()
+        self._arms = [exp3.select_arms()[0]
+                      for exp3 in self._internal_exp3_instances]
+        return self._arms
+
+    def observe_rewards(self, arms: List[int], rewards: List[int]) -> None:
+        """Implements the corresponding method from `AbstractMultiBandit`.
+        """
+        super().observe_rewards(arms, rewards)
+        for t, exp3 in enumerate(self._internal_exp3_instances):
+            r = rewards[0] if t == 0 else max(rewards[:(t+1)]) - max(rewards[:t])
+            exp3.observe_rewards([arms[t]], [r])
