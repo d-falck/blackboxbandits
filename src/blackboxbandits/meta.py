@@ -166,10 +166,7 @@ class BanditMetaOptimizer(AbstractMetaOptimizer):
                               [optimizers_chosen].to_list()
             generalization_rewards = rewards["generalization"]["score"] \
                                      [optimizers_chosen].to_list()
-            try:
-                bandit.observe_rewards(arm_indices, visible_rewards)
-            except:
-                import ipdb; ipdb.set_trace()
+            bandit.observe_rewards(arm_indices, visible_rewards)
 
             self._scores_visible.append(max(visible_rewards))
             self._scores_generalization.append(max(generalization_rewards))

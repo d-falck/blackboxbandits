@@ -138,6 +138,63 @@ class FPML(AbstractMultiBandit):
         self._last_explored_arms = None
 
 
+class FPMLWithGR(AbstractMultiBandit):
+    """Implementation of the Follow the Perturbed Multiple Leaders algorithm
+    with partial feedback and geometric resampling for reward estimation.
+
+    Implements `AbstractMultiBandit`. No explicit exploration.
+
+    Parameters
+    ----------
+    Same as `AbstractMultiBandit`.
+
+    Attributes
+    ----------
+    Same as parameters, plus:
+    epsilon : float
+        The rate of the i.i.d. exponential perturbations applied to cumulative
+        rewards at each round.
+    """
+
+    def __init__(self, A: int, T: int, n: int):
+        # Values from Prop 3.11
+        self.epsilon = np.sqrt(1/A*(n/np.log(A))**((T-2)/(T+1)))
+        self._M = int(np.ceil(np.sqrt(A*(n/np.log(A))**(T/(T+1)))))
+        super().__init__(A, T, n)
+        self._cum_est_rewards = np.zeros(A)
+
+    def select_arms(self, store=True) -> List[int]:
+        """Implements corresponding method in `AbstractMultiBandit`.
+        """
+        if store:
+            super().select_arms()
+        perturbations = np.random.exponential(scale=1/self.epsilon, size=self.A)
+        perturbed_cum_est_rewards = self._cum_est_rewards + perturbations
+        leaderboard = np.argsort(perturbed_cum_est_rewards)
+        chosen = leaderboard[-self.T:].tolist()
+        if store:
+            self._last_chosen_arms = chosen
+        return chosen
+
+    def observe_rewards(self, arms: List[int], rewards: List[float]) -> None:
+        """Implements corresponding method in `AbstractMultiBandit`.
+        """
+        super().observe_rewards(arms, rewards)
+        assert arms == self._last_chosen_arms, \
+            "Rewards must be provided for the chosen arms"
+        geom = self._geometric_resample(arms)
+        self._cum_est_rewards[arms] += np.array(rewards) * geom
+        self._last_chosen_arms = None
+
+    def _geometric_resample(self, arms: List[int]) -> np.array:
+        geom = np.full(len(arms), self._M)
+        for k in range(1, self._M):
+            resampled_arms = self.select_arms(store=False)
+            for i, arm in enumerate(arms):
+                if arm in resampled_arms:
+                    geom[i] = min(geom[i], k)
+        return geom
+
 class StreeterFPML(AbstractMultiBandit):
     """Implementation of the modified Streeter algorithm with multi-bandit
     FPML as a sub-routine.
@@ -153,7 +210,10 @@ class StreeterFPML(AbstractMultiBandit):
         The number of internal instances of FPML.
     S : int, optional
         How many of the `T` arms at each round to set aside for exploration.
-        Defaults to 1.
+        Defaults to 1. Not relevant if `gr=True`.
+    gr : bool, optional
+        Whether to use geometric resampling in the internal FPML instances.
+        Defaults to False.
 
     Attributes
     ----------
@@ -164,12 +224,14 @@ class StreeterFPML(AbstractMultiBandit):
     The parameters `T_1` and `T_2` must multiply to `T`.
     """
 
-    def __init__(self, A: int, T: int, T_1: int, T_2: int, n: int, S: int = 1):
+    def __init__(self, A: int, T: int, T_1: int, T_2: int, n: int, S: int = 1, gr: bool = False):
         assert T_1 * T_2 == T, "Time parameters must multiply to total budget"
         self.T_1 = T_1
         self.T_2 = T_2
         self.S = S
-        self._internal_fpml_instances = [FPML(A=A, T=T_1, S=S, n=n)
+        self.gr = gr
+        self._internal_fpml_instances = [FPMLWithGR(A=A, T=T_1, n=n) if gr \
+                                        else FPML(A=A, T=T_1, S=S, n=n) \
                                         for _ in range(T_2)]
         super().__init__(A, T, n)
 
