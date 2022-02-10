@@ -40,6 +40,6 @@ def visualise_by_budget(results: pd.DataFrame, max=7) -> None:
     max : int
         The maximum time budget mentioned in the results dataframe.
     """
-    def f(n=1):
-        return filter_results(results, n)
-    interact(f, n=(1,max))
+    def f(T=1):
+        return filter_results(results, T)
+    interact(f, T=(1,max))
