@@ -4,9 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>blackboxbandits API documentation</title>
-<meta name="description" content="A package for comparing black-box optimization algorithms and bandit
-combinations of them on online streams of ML hyperparameter-selection tasks." />
+<title>blackboxbandits.utils API documentation</title>
+<meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -20,55 +19,143 @@ combinations of them on online streams of ML hyperparameter-selection tasks." />
 <main>
 <article id="content">
 <header>
-<h1 class="title">Package <code>blackboxbandits</code></h1>
+<h1 class="title">Module <code>blackboxbandits.utils</code></h1>
 </header>
 <section id="section-intro">
-<p>A package for comparing black-box optimization algorithms and bandit
-combinations of them on online streams of ML hyperparameter-selection tasks.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34;A package for comparing black-box optimization algorithms and bandit
-combinations of them on online streams of ML hyperparameter-selection tasks.&#34;&#34;&#34;
+<pre><code class="python">import pandas as pd
+from ipywidgets import interact
+from typing import List
 
-__version__ = &#34;0.0.1&#34;
-__author__ = &#34;Damon Falck&#34;
-__license__ = &#34;MIT GPL-3&#34;</code></pre>
+def filter_results(results: pd.DataFrame, budget: int):
+    &#34;&#34;&#34;Filters a meta-comparison summary dataframe by budget.
+    
+    Parameters
+    ----------
+    results : pd.DataFrame
+        The summary output by a `compare.MetaOptimizerComparison` object.
+    budget : int
+        The algorithm-budget to filter by.
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing only the results of meta-algorithms with the
+        specified time budget, sorted by visible score.
+    &#34;&#34;&#34;
+    n = budget
+    valid = lambda x: _is_budgeted_bandit(n)(x) or (n == 1 and not &#34;_&#34; in x[-7:])
+    return results[results.index.to_series().apply(valid)] \
+            .sort_values(&#34;visible_score&#34;, ascending=False)
+
+def _endings(n) -&gt; List[str]:
+    factors = [(i, n//i) for i in range(1,n+1) if n % i == 0]
+    return [f&#34;_{n}&#34;] + [f&#34;_{a}x{b}&#34; for a,b in factors]
+
+def _is_budgeted_bandit(n):
+    return lambda x: any(map(lambda end: x.endswith(end), _endings(n)))
+
+def visualise_by_budget(results: pd.DataFrame, max=7) -&gt; None:
+    &#34;&#34;&#34;Shows an interactive widget to explore a summary dataframe by budget.
+    
+    Parameters
+    ----------
+    results : pd.DataFrame
+        The summary output by a `compare.MetaOptimizerComparison` object.
+    max : int
+        The maximum time budget mentioned in the results dataframe.
+    &#34;&#34;&#34;
+    def f(T=1):
+        return filter_results(results, T)
+    interact(f, T=(1,max))</code></pre>
 </details>
 </section>
 <section>
-<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt><code class="name"><a title="blackboxbandits.bandits" href="bandits.html">blackboxbandits.bandits</a></code></dt>
+<dt id="blackboxbandits.utils.filter_results"><code class="name flex">
+<span>def <span class="ident">filter_results</span></span>(<span>results: pandas.core.frame.DataFrame, budget: int)</span>
+</code></dt>
 <dd>
-<div class="desc"><p>Provides implementations of various bandit algorithms in a generic context.</p></div>
+<div class="desc"><p>Filters a meta-comparison summary dataframe by budget.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>results</code></strong> :&ensp;<code>pd.DataFrame</code></dt>
+<dd>The summary output by a <code>compare.MetaOptimizerComparison</code> object.</dd>
+<dt><strong><code>budget</code></strong> :&ensp;<code>int</code></dt>
+<dd>The algorithm-budget to filter by.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>A dataframe containing only the results of meta-algorithms with the
+specified time budget, sorted by visible score.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def filter_results(results: pd.DataFrame, budget: int):
+    &#34;&#34;&#34;Filters a meta-comparison summary dataframe by budget.
+    
+    Parameters
+    ----------
+    results : pd.DataFrame
+        The summary output by a `compare.MetaOptimizerComparison` object.
+    budget : int
+        The algorithm-budget to filter by.
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing only the results of meta-algorithms with the
+        specified time budget, sorted by visible score.
+    &#34;&#34;&#34;
+    n = budget
+    valid = lambda x: _is_budgeted_bandit(n)(x) or (n == 1 and not &#34;_&#34; in x[-7:])
+    return results[results.index.to_series().apply(valid)] \
+            .sort_values(&#34;visible_score&#34;, ascending=False)</code></pre>
+</details>
 </dd>
-<dt><code class="name"><a title="blackboxbandits.compare" href="compare.html">blackboxbandits.compare</a></code></dt>
+<dt id="blackboxbandits.utils.visualise_by_budget"><code class="name flex">
+<span>def <span class="ident">visualise_by_budget</span></span>(<span>results: pandas.core.frame.DataFrame, max=7) ‑> None</span>
+</code></dt>
 <dd>
-<div class="desc"><p>Provides interfaces to run experiments comparing black-box optimizers and
-combinations of them (which we call meta-optimizers) on various ML tasks.</p></div>
-</dd>
-<dt><code class="name"><a title="blackboxbandits.meta" href="meta.html">blackboxbandits.meta</a></code></dt>
-<dd>
-<div class="desc"><p>Provides implementations of various meta-optimizers, i.e. algorithms to
-choose combinations of single black-box optimizers to run on each task in a
-…</p></div>
-</dd>
-<dt><code class="name"><a title="blackboxbandits.optimizers" href="optimizers/index.html">blackboxbandits.optimizers</a></code></dt>
-<dd>
-<div class="desc"><p>Provides Bayesmark-compatible implementations of various open-source
-black-box optimization algorithms.</p></div>
-</dd>
-<dt><code class="name"><a title="blackboxbandits.utils" href="utils.html">blackboxbandits.utils</a></code></dt>
-<dd>
-<div class="desc"></div>
+<div class="desc"><p>Shows an interactive widget to explore a summary dataframe by budget.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>results</code></strong> :&ensp;<code>pd.DataFrame</code></dt>
+<dd>The summary output by a <code>compare.MetaOptimizerComparison</code> object.</dd>
+<dt><strong><code>max</code></strong> :&ensp;<code>int</code></dt>
+<dd>The maximum time budget mentioned in the results dataframe.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def visualise_by_budget(results: pd.DataFrame, max=7) -&gt; None:
+    &#34;&#34;&#34;Shows an interactive widget to explore a summary dataframe by budget.
+    
+    Parameters
+    ----------
+    results : pd.DataFrame
+        The summary output by a `compare.MetaOptimizerComparison` object.
+    max : int
+        The maximum time budget mentioned in the results dataframe.
+    &#34;&#34;&#34;
+    def f(T=1):
+        return filter_results(results, T)
+    interact(f, T=(1,max))</code></pre>
+</details>
 </dd>
 </dl>
-</section>
-<section>
-</section>
-<section>
 </section>
 <section>
 </section>
@@ -79,13 +166,15 @@ black-box optimization algorithms.</p></div>
 <ul></ul>
 </div>
 <ul id="index">
-<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<li><h3>Super-module</h3>
 <ul>
-<li><code><a title="blackboxbandits.bandits" href="bandits.html">blackboxbandits.bandits</a></code></li>
-<li><code><a title="blackboxbandits.compare" href="compare.html">blackboxbandits.compare</a></code></li>
-<li><code><a title="blackboxbandits.meta" href="meta.html">blackboxbandits.meta</a></code></li>
-<li><code><a title="blackboxbandits.optimizers" href="optimizers/index.html">blackboxbandits.optimizers</a></code></li>
-<li><code><a title="blackboxbandits.utils" href="utils.html">blackboxbandits.utils</a></code></li>
+<li><code><a title="blackboxbandits" href="index.html">blackboxbandits</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="blackboxbandits.utils.filter_results" href="#blackboxbandits.utils.filter_results">filter_results</a></code></li>
+<li><code><a title="blackboxbandits.utils.visualise_by_budget" href="#blackboxbandits.utils.visualise_by_budget">visualise_by_budget</a></code></li>
 </ul>
 </li>
 </ul>

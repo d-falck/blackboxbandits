@@ -199,10 +199,7 @@ class BanditMetaOptimizer(AbstractMetaOptimizer):
                               [optimizers_chosen].to_list()
             generalization_rewards = rewards[&#34;generalization&#34;][&#34;score&#34;] \
                                      [optimizers_chosen].to_list()
-            try:
-                bandit.observe_rewards(arm_indices, visible_rewards)
-            except:
-                import ipdb; ipdb.set_trace()
+            bandit.observe_rewards(arm_indices, visible_rewards)
 
             self._scores_visible.append(max(visible_rewards))
             self._scores_generalization.append(max(generalization_rewards))</code></pre>
@@ -443,10 +440,7 @@ tasks presented.</p>
                               [optimizers_chosen].to_list()
             generalization_rewards = rewards[&#34;generalization&#34;][&#34;score&#34;] \
                                      [optimizers_chosen].to_list()
-            try:
-                bandit.observe_rewards(arm_indices, visible_rewards)
-            except:
-                import ipdb; ipdb.set_trace()
+            bandit.observe_rewards(arm_indices, visible_rewards)
 
             self._scores_visible.append(max(visible_rewards))
             self._scores_generalization.append(max(generalization_rewards))</code></pre>
@@ -486,10 +480,7 @@ tasks presented.</p>
                           [optimizers_chosen].to_list()
         generalization_rewards = rewards[&#34;generalization&#34;][&#34;score&#34;] \
                                  [optimizers_chosen].to_list()
-        try:
-            bandit.observe_rewards(arm_indices, visible_rewards)
-        except:
-            import ipdb; ipdb.set_trace()
+        bandit.observe_rewards(arm_indices, visible_rewards)
 
         self._scores_visible.append(max(visible_rewards))
         self._scores_generalization.append(max(generalization_rewards))</code></pre>
