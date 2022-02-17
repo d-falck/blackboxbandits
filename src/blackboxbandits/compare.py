@@ -12,8 +12,6 @@ import numpy as np
 from datetime import datetime
 from tempfile import mkdtemp
 from multiprocess import Pool, Lock
-import tqdm
-import time
 
 
 class BaseOptimizerComparison:
@@ -285,12 +283,18 @@ class MetaOptimizerComparison:
     db_root : str
         Path to root folder in which a folder for this experiment's data will
         be created.
-    parallel : bool, optional
+    parallel_base : bool, optional
         Whether to run the base experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    parallel_meta : bool, optional
+        Whether to run the meta experiments as a pool of tasks across multiple
         worker threads or not. Defaults to False.
     num_workers : Optional[int], optional
         Number of worker processes to use if parallelisation is enabled. If not
         specified defaults to the number of cpu cores.
+    num_meta_repetitions : int, optional
+        Number of times to re-run the meta-optimizers on each base optimizer
+        study; averaging over meta-optimizer randomness. Defaults to 1.
 
     Attributes
     ----------
@@ -306,8 +310,10 @@ class MetaOptimizerComparison:
                  num_calls: int,
                  num_repetitions: int,
                  db_root: str,
-                 parallel: bool = False,
-                 num_workers: Optional[int] = None):
+                 parallel_base: bool = False,
+                 parallel_meta: bool = False,
+                 num_workers: Optional[int] = None,
+                 num_meta_repetitions: int = 1):
         self.meta_optimizers = meta_optimizers
         self.base_optimizers = base_optimizers
         self.classifiers = classifiers
@@ -316,8 +322,10 @@ class MetaOptimizerComparison:
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
-        self.parallel = parallel
+        self.parallel_base = parallel_base
+        self.parallel_meta = parallel_meta
         self.num_workers = num_workers
+        self.num_meta_repetitions = num_meta_repetitions
         
         self._dbid: Optional[str] = None
 
@@ -336,7 +344,7 @@ class MetaOptimizerComparison:
             self.num_calls,
             self.num_repetitions,
             self.db_root,
-            self.parallel,
+            self.parallel_base,
             self.num_workers)
         base_comparison.run()
         self._dbid = base_comparison.get_dbid()
@@ -366,27 +374,17 @@ class MetaOptimizerComparison:
         assert self._dbid is not None, "Must run or load base comparison first."
         self._meta_comparison_completed = True
 
-        all_results = []
-        for rep in range(self.num_repetitions):
-            results = []
-            for meta_optimizer in self.meta_optimizers.values():
-                comp_data = self._base_comparison_data.xs(rep, level="study_id")
-                meta_optimizer.run(comp_data)
-                results.append(meta_optimizer.get_results())
-            all_results.append(pd.concat(results,
-                                         keys=self.meta_optimizers.keys()))
-        self._all_meta_results = pd.concat(
-            all_results,
-            keys=list(range(self.num_repetitions))
-        )
-        self._all_meta_results.index.rename(
-            ["study_id", "optimizer", "function"],
-            inplace=True
-        )
-        self._all_meta_results = self._all_meta_results \
-            .reorder_levels(["optimizer", "function", "study_id"])
-        self._all_meta_results = self._all_meta_results \
-                                .sort_values(self._all_meta_results.index.names)
+        if self.parallel_meta:
+            pool = Pool(self.num_workers) \
+                   if self.num_workers is not None \
+                   else Pool()
+            all_results = pool.map(self._single_meta_run, list(range(self.num_meta_repetitions)))
+        else:
+            all_results = [self._single_meta_run() for _ in range(self.num_meta_repetitions)]
+        
+        results = pd.concat(all_results).groupby(level=0).mean() # TODO: Check this is right
+        self._all_meta_results = results
+
     def full_results(self) -> pd.DataFrame:
         """Get the full results of this meta-comparison as a dataframe.
         
@@ -432,3 +430,21 @@ class MetaOptimizerComparison:
         """
         assert self._dbid is not None, "Must run or load base comparison first."
         return self._dbid
+
+    def _single_meta_run(self) -> pd.DataFrame:
+        all_results = []
+        for rep in range(self.num_repetitions):
+            results = []
+            for meta_optimizer in self.meta_optimizers.values():
+                comp_data = self._base_comparison_data.xs(rep, level="study_id")
+                meta_optimizer.run(comp_data)
+                results.append(meta_optimizer.get_results())
+            all_results.append(pd.concat(results,
+                                         keys=self.meta_optimizers.keys()))
+
+        all_results = pd.concat(all_results, keys=list(range(self.num_repetitions)))
+        all_results.index.rename(["study_id", "optimizer", "function"], inplace=True)
+        all_results = all_results.reorder_levels(["optimizer", "function", "study_id"])
+        all_results = all_results.sort_values(all_results.index.names)
+
+        return all_results
