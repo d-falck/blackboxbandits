@@ -36,6 +36,9 @@ class BaseOptimizerComparison:
     db_root : str
         Path to root folder in which a folder for this experiment's data will
         be created.
+    datasets_root : Optional[str], optional
+        Path to directory containing csv files for referenced datasets. Defaults
+        to None.
     parallel : bool, optional
         Whether to run the experiments as a pool of tasks across multiple worker
         threads or not. Defaults to False.
@@ -56,6 +59,7 @@ class BaseOptimizerComparison:
                  num_calls: int,
                  num_repetitions: int,
                  db_root: str,
+                 datasets_root: Optional[str] = None,
                  parallel: bool = False,
                  num_workers: Optional[int] = None):
         
@@ -66,6 +70,7 @@ class BaseOptimizerComparison:
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
+        self.datasets_root = datasets_root
         self.parallel = parallel
         self.num_workers = num_workers
         self._dbid: Optional[str] = None
@@ -90,6 +95,8 @@ class BaseOptimizerComparison:
             "-n": str(self.num_calls),
             "-r": str(self.num_repetitions)
         }
+        if self.datasets_root is not None:
+            launcher_args["-dr"] = self.datasets_root
         if self.parallel: # Will create list of independent commands to run
             # Approximate number of indep. experiments in this comparison
             launcher_args["-nj"] = str(len(self.optimizers) * len(self.datasets) \
@@ -171,7 +178,7 @@ class BaseOptimizerComparison:
                if self.num_workers is not None \
                else Pool(initializer=self._pool_init, initargs=(l,))
         print(f"Starting processing {len(job_commands)} jobs.")
-        pool.map(self._process_individual_command, job_commands.items())
+        pool.map(self._process_individual_command, job_commands.items(), chunksize=1)
         pool.close()
         pool.join()
         print("Finished processing all jobs.")
@@ -283,6 +290,9 @@ class MetaOptimizerComparison:
     db_root : str
         Path to root folder in which a folder for this experiment's data will
         be created.
+    datasets_root : Optional[str], optional
+        Path to directory containing csv files for referenced datasets. Defaults
+        to None.
     parallel_base : bool, optional
         Whether to run the base experiments as a pool of tasks across multiple
         worker threads or not. Defaults to False.
@@ -310,6 +320,7 @@ class MetaOptimizerComparison:
                  num_calls: int,
                  num_repetitions: int,
                  db_root: str,
+                 datasets_root: Optional[str] = None,
                  parallel_base: bool = False,
                  parallel_meta: bool = False,
                  num_workers: Optional[int] = None,
@@ -322,6 +333,7 @@ class MetaOptimizerComparison:
         self.num_calls = num_calls
         self.num_repetitions = num_repetitions
         self.db_root = db_root
+        self.datasets_root = datasets_root
         self.parallel_base = parallel_base
         self.parallel_meta = parallel_meta
         self.num_workers = num_workers
@@ -344,6 +356,7 @@ class MetaOptimizerComparison:
             self.num_calls,
             self.num_repetitions,
             self.db_root,
+            self.datasets_root,
             self.parallel_base,
             self.num_workers)
         base_comparison.run()
