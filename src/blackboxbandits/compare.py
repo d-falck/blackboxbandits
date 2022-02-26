@@ -12,6 +12,7 @@ import numpy as np
 from datetime import datetime
 from tempfile import mkdtemp
 from multiprocess import Pool, Lock
+import datetime as dt
 
 
 class BaseOptimizerComparison:
@@ -185,7 +186,7 @@ class BaseOptimizerComparison:
 
     def _process_individual_command(self, job: Tuple[str, str]):
         with lock:
-            print("Starting job", job[0])
+            print("Starting job", job[0], "at", dt.datetime.now().isoformat())
         try:
             subprocess.run(job[1], shell=True)
         except:
@@ -193,7 +194,7 @@ class BaseOptimizerComparison:
                 print(f"Job {job[0]} failed")
         else:
             with lock:
-                print("Finished job", job[0])
+                print("Finished job", job[0], "at", dt.datetime.now().isoformat())
             
     def _pool_init(self, l):
         global lock
