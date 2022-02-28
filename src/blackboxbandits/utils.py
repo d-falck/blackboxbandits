@@ -43,3 +43,6 @@ def visualise_by_budget(results: pd.DataFrame, max=7) -> None:
     def f(T=1):
         return filter_results(results, T)
     interact(f, T=(1,max))
+
+def synthesize_rewards(num_actions: int, num_rounds: int, regime: str) -> pd.DataFrame:
+    raise NotImplementedError()

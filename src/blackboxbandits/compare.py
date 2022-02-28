@@ -2,8 +2,10 @@
 combinations of them (which we call meta-optimizers) on various ML tasks.
 """
 
+from xml.dom.minidom import parseString
 import pandas as pd
 from .meta import AbstractMetaOptimizer
+from .bandits import AbstractMultiBandit
 import os
 import subprocess
 from typing import List, Optional, Dict, Tuple
@@ -13,6 +15,7 @@ from datetime import datetime
 from tempfile import mkdtemp
 from multiprocess import Pool, Lock
 import datetime as dt
+import itertools
 
 
 class BaseOptimizerComparison:
@@ -462,3 +465,81 @@ class MetaOptimizerComparison:
         all_results = all_results.sort_values(all_results.index.names)
 
         return all_results
+
+
+class SyntheticBanditComparison:
+    """Class implementing comparison of bandit algorithms on synthetic rewards.
+
+    Parameters
+    ----------
+    rewards : pd.DataFrame
+        A dataframe of float rewards in [0,1], with columns representing different
+        actions and rows representing different rounds.
+    bandits : List[AbstractMultiBandit]
+        A dict of initialized bandit objects for comparison on these rewards,
+        keyed by names for reference.
+    best_fixed_budgets : List[int]
+        A list of integers action budgets for which to evaluate the best fixed
+        action set in hindsight (as well as running the given bandits).
+    parallel: bool, optional
+        Whether to use multiple processes for evaluation. Defaults to False.
+    num_workers : int, optional
+        How many worker processes to use, if `parallel` is True. If not specified,
+        defaults to the number of available cores.
+    num_repetitions : int, optional
+        How many times to repeat the evaluation for reliability. Defaults to 1.
+
+    Attributes
+    ----------
+    Same as parameters.
+    """
+
+    def __init__(self,
+                 rewards: pd.DataFrame,
+                 bandits: Dict[str, AbstractMultiBandit],
+                 best_fixed_budgets: List[int],
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None,
+                 num_repetitions: int = 1):
+        self.rewards = rewards
+        self.bandits = bandits
+        self.best_fixed_budgets = best_fixed_budgets
+        self.parallel = parallel
+        self.num_workers = num_workers
+        self.num_repetitions = num_repetitions
+
+        self.n = rewards.shape[0]
+        self.A = rewards.shape[1]
+        self.arms = rewards.columns.to_numpy()
+        alg_names = list(bandits.keys()) + [f"best_fixed_{T}" for T in best_fixed_budgets]
+        self._results = pd.DataFrame(0, index=rewards.index, columns=alg_names)
+        self._has_run = False
+
+        assert all(bandit.n == self.n and bandit.A == self.A for bandit in bandits), \
+            "Given bandits must be set up for the right number of arms and rounds."
+
+    def run(self) -> None:
+        # Run bandits
+        for round, rewards in self.rewards.iterrows():
+            for bandit_name, bandit in self.bandits.items():
+                arm_indices = bandit.select_arms()
+                arms = self.arms[arm_indices]
+                feedback = rewards[arms]
+                bandit.observe_rewards(arm_indices, feedback.to_list())
+                self._results[round, bandit_name] = feedback.max()
+
+        # Compute best fixed-in-hindsight action sets
+        for T in self.best_fixed_budgets:
+            subsets = list(itertools.combinations(self.arms.tolist(), T))
+            best_subset_rewards = np.full(self.n, -1)
+            for subset in subsets:
+                subset_rewards = self.rewards[:,subset].max(axis=1).to_numpy()
+                if subset_rewards.sum() > best_subset_rewards.sum():
+                    best_subset_rewards = subset_rewards
+            self._results[:, f"best_fixed_{T}"] = best_subset_rewards
+
+        self._has_run = True
+
+    def get_results(self) -> pd.DataFrame:
+        assert self._has_run, "Must run first."
+        return self._results
