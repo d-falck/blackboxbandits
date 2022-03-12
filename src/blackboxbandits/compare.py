@@ -259,7 +259,7 @@ class BaseOptimizerComparison:
         data = data.reindex(sorted(data.columns), axis=1)
         data.columns = data.columns.str.split("_", expand=True)
 
-        return data
+        return data.dropna() # TODO: may want to remove dropna
 
     @staticmethod
     def _constrain(series):
@@ -270,88 +270,157 @@ class MetaOptimizerComparison:
     """Interface for comparing *combinations* of standard black-box
     optimizers on ML tasks.
 
+    Do not use the default constructor, use `from_base_comparison_setup` or
+    `from_precomputed_base_comparison`.
+
     Parameters
     ----------
     meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
         Dictionary whose values are the instantiated meta-optimizers to include
         in this comparison (these will choose combinations of the base optimizers
         defined below) and whose keys are the names used to refer to them.
-    base_optimizers : List[str]
-        List of standard optimizer names known to Bayesmark to be used as the
-        base optimizers for this comparison.
-    classifiers : List[str]
-        List of sklearn classification methods known to Bayesmark.
-    datasets : List[str]
-        List of classification/regression datasets known to Bayesmark.
-    metrics : List[str]
-        List of loss functions known to Bayesmark. Must include at least one
-        regression and one classification loss function if `datasets` includes
-        both types of task.
-    num_calls : int
-        Number of function evaluations allowed by each optimizer on each task.
-    num_repetitions : int
-        Number of times to repeat the entire experiment for reliability.
     db_root : str
         Path to root folder in which a folder for this experiment's data will
         be created.
-    datasets_root : Optional[str], optional
-        Path to directory containing csv files for referenced datasets. Defaults
-        to None.
-    parallel_base : bool, optional
-        Whether to run the base experiments as a pool of tasks across multiple
-        worker threads or not. Defaults to False.
     parallel_meta : bool, optional
         Whether to run the meta experiments as a pool of tasks across multiple
         worker threads or not. Defaults to False.
     num_workers : Optional[int], optional
         Number of worker processes to use if parallelisation is enabled. If not
         specified defaults to the number of cpu cores.
-    num_meta_repetitions : int, optional
-        Number of times to re-run the meta-optimizers on each base optimizer
-        study; averaging over meta-optimizer randomness. Defaults to 1.
 
     Attributes
     ----------
-    Same as parameters.
+    Same as parameters of whichever constructor used.
     """
 
     def __init__(self,
                  meta_optimizers: Dict[str, AbstractMetaOptimizer],
-                 base_optimizers: List[str],
-                 classifiers: List[str],
-                 datasets: List[str],
-                 metrics: List[str],
-                 num_calls: int,
-                 num_repetitions: int,
                  db_root: str,
-                 datasets_root: Optional[str] = None,
-                 parallel_base: bool = False,
                  parallel_meta: bool = False,
-                 num_workers: Optional[int] = None,
                  num_meta_repetitions: int = 1):
         self.meta_optimizers = meta_optimizers
-        self.base_optimizers = base_optimizers
-        self.classifiers = classifiers
-        self.datasets = datasets
-        self.metrics = metrics
-        self.num_calls = num_calls
-        self.num_repetitions = num_repetitions
         self.db_root = db_root
-        self.datasets_root = datasets_root
-        self.parallel_base = parallel_base
         self.parallel_meta = parallel_meta
-        self.num_workers = num_workers
         self.num_meta_repetitions = num_meta_repetitions
         
-        self._dbid: Optional[str] = None
-
         self._meta_comparison_completed = False
+        self._dbid: Optional[str] = None
+        self._base_comparison_info_ready = False
+
+    @classmethod
+    def from_base_comparison_setup(cls,
+                                   meta_optimizers: Dict[str, AbstractMetaOptimizer],
+                                   base_optimizers: List[str],
+                                   classifiers: List[str],
+                                   datasets: List[str],
+                                   metrics: List[str],
+                                   num_calls: int,
+                                   num_repetitions: int,
+                                   db_root: str,
+                                   datasets_root: Optional[str] = None,
+                                   parallel_base: bool = False,
+                                   parallel_meta: bool = False,
+                                   num_workers: Optional[int] = None,
+                                   num_meta_repetitions: int = 1):
+        """Construct from base comparison setup info.
+        
+        Parameters
+        ----------
+        meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+            Dictionary whose values are the instantiated meta-optimizers to include
+            in this comparison (these will choose combinations of the base optimizers
+            defined below) and whose keys are the names used to refer to them.
+        base_optimizers : List[str]
+            List of standard optimizer names known to Bayesmark to be used as the
+            base optimizers for this comparison.
+        classifiers : List[str]
+            List of sklearn classification methods known to Bayesmark.
+        datasets : List[str]
+            List of classification/regression datasets known to Bayesmark.
+        metrics : List[str]
+            List of loss functions known to Bayesmark. Must include at least one
+            regression and one classification loss function if `datasets` includes
+            both types of task.
+        num_calls : int
+            Number of function evaluations allowed by each optimizer on each task.
+        num_repetitions : int
+            Number of times to repeat the entire experiment for reliability.
+        db_root : str
+            Path to root folder in which a folder for this experiment's data will
+            be created.
+        datasets_root : Optional[str], optional
+            Path to directory containing csv files for referenced datasets. Defaults
+            to None.
+        parallel_base : bool, optional
+            Whether to run the base experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        parallel_meta : bool, optional
+            Whether to run the meta experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        num_workers : Optional[int], optional
+            Number of worker processes to use if parallelisation is enabled. If not
+            specified defaults to the number of cpu cores.
+        num_meta_repetitions : int, optional
+            Number of times to re-run the meta-optimizers on each base optimizer
+            study; averaging over meta-optimizer randomness. Defaults to 1.
+        """
+
+        instance = cls(meta_optimizers, db_root, parallel_meta, num_meta_repetitions)
+
+        instance.base_optimizers = base_optimizers
+        instance.classifiers = classifiers
+        instance.datasets = datasets
+        instance.metrics = metrics
+        instance.num_calls = num_calls
+        instance.num_repetitions = num_repetitions
+        instance.datasets_root = datasets_root
+        instance.parallel_base = parallel_base
+        instance.num_workers = num_workers
+
+        instance._base_comparison_info_ready = True
+
+    @classmethod
+    def from_precomputed_base_comparison(cls,
+                                         dbid: str,
+                                         meta_optimizers: Dict[str, AbstractMetaOptimizer],
+                                         db_root: str,
+                                         parallel_meta: bool = False,
+                                         num_meta_repetitions: int = 1) -> None:
+        """Construct by loading data from a previously run comparison of the base
+        optimizers for this experiment.
+
+        Parameters
+        ----------
+        dbid : str
+            The DBID for the saved data to be loaded.
+        meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+            Dictionary whose values are the instantiated meta-optimizers to include
+            in this comparison (these will choose combinations of the base optimizers
+            defined below) and whose keys are the names used to refer to them.
+        db_root : str
+            Path to root folder in which a folder for this experiment's data will
+            be created.
+        parallel_meta : bool, optional
+            Whether to run the meta experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        num_workers : Optional[int], optional
+            Number of worker processes to use if parallelisation is enabled. If not
+            specified defaults to the number of cpu cores.
+        """
+        instance = cls(meta_optimizers, db_root, parallel_meta, num_meta_repetitions)
+        instance._dbid = dbid
+        instance._base_comparison_data = BaseOptimizerComparison \
+            .get_results_for_dbid(instance._dbid, instance.db_root)
+        return instance
 
     def run_base_comparison(self) -> None:
         """Run the base optimizers on the relevant tasks for this experiment.
 
         May take a while.
         """
+        assert self._base_comparison_info_ready, "Must construct using `from_base_comparison_setup`."
+
         base_comparison = BaseOptimizerComparison(
             self.base_optimizers,
             self.classifiers,
@@ -366,22 +435,6 @@ class MetaOptimizerComparison:
         base_comparison.run()
         self._dbid = base_comparison.get_dbid()
         self._base_comparison_data = base_comparison.get_results()
-
-    def load_base_comparison(self, dbid: str) -> None:
-        """Load data from a previously run comparison of the base optimizers
-        for this experiment.
-
-        The DBID must correspond to a comparison of the correct base optimizers
-        for this meta_comparison.
-
-        Parameters
-        ----------
-        dbid : str
-            The DBID for the saved data to be loaded.
-        """
-        self._dbid = dbid
-        self._base_comparison_data = BaseOptimizerComparison \
-            .get_results_for_dbid(self._dbid, self.db_root)
 
     def run_meta_comparison(self):
         """Run the comparison of meta-optimizers over the base optimizers.
