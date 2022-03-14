@@ -454,18 +454,10 @@ class MetaOptimizerComparison:
         Must have first run or loaded the base optimizer comparison.
         """
         assert self._dbid is not None, "Must run or load base comparison first."
-        self._meta_comparison_completed = True
-
-        if self.parallel_meta:
-            pool = Pool(self.num_workers) \
-                   if self.num_workers is not None \
-                   else Pool()
-            all_results = pool.map(self._single_meta_run, list(range(self.num_meta_repetitions)))
-        else:
-            all_results = [self._single_meta_run() for _ in range(self.num_meta_repetitions)]
-        
-        results = pd.concat(all_results).groupby(level=0).mean() # TODO: Check this is right
+        results = [self._single_meta_run(i) for i in range(self.num_meta_repetitions)]
+        results = pd.concat(results).groupby(level=0).mean() # TODO: Check this is right
         self._all_meta_results = results
+        self._meta_comparison_completed = True
 
     def full_results(self) -> pd.DataFrame:
         """Get the full results of this meta-comparison as a dataframe.
@@ -513,26 +505,36 @@ class MetaOptimizerComparison:
         assert self._dbid is not None, "Must run or load base comparison first."
         return self._dbid
 
-    def _single_meta_run(self) -> pd.DataFrame:
-        all_results = []
-        for rep in range(self.num_repetitions):
-            results = []
-            for i, meta_optimizer in enumerate(self.meta_optimizers.values()):
-                print(f"Base study {rep} of {self.num_repetitions}: " \
-                      f"running meta-optimizer {i} of {len(self.meta_optimizers)}")
-                comp_data = self._base_comparison_data.xs(rep, level="study_id")
-                meta_optimizer.run(comp_data)
-                results.append(meta_optimizer.get_results())
-            all_results.append(pd.concat(results,
-                                         keys=self.meta_optimizers.keys()))
+    def _single_meta_run(self, i) -> pd.DataFrame:
+        print(f"Starting meta-comparison, repetition {i} of {self.num_meta_repetitions}")
 
-        all_results = pd.concat(all_results, keys=list(range(self.num_repetitions)))
-        all_results.index.rename(["study_id", "optimizer", "function"], inplace=True)
-        all_results = all_results.reorder_levels(["optimizer", "function", "study_id"])
-        all_results = all_results.sort_values(all_results.index.names)
+        if self.parallel_meta:
+            pool = Pool() if self.num_workers is None else Pool(self.num_workers)
+            results = pool.map(self._process_meta_optimizer,
+                               self.meta_optimizers.keys())
+        else:
+            results = [self._process_meta_optimizer(name)
+                       for name in self.meta_optimizers]
+        
+        results = list(map(list, zip(*results))) # Transpose
+        results = [pd.concat(dfs, keys=self.meta_optimizers.keys()) for dfs in results]
 
-        return all_results
+        results = pd.concat(results, keys=list(range(self.num_repetitions)))
+        results.index.rename(["study_id", "optimizer", "function"], inplace=True)
+        results = results.reorder_levels(["optimizer", "function", "study_id"])
+        results = results.sort_values(results.index.names)
+        return results
 
+    def _process_meta_optimizer(self, name):
+        meta_optimizer = self.meta_optimizers[name]
+        results = []
+        for rep in self.num_repetitions:
+            print(f"Running meta-optimizer {name} on base " \
+                  f"study {rep} of {self.num_repetitions}")
+            comp_data = self._base_comparison_data.xs(rep, level="study_id")
+            meta_optimizer.run(comp_data)
+            results.append(meta_optimizer.get_results())
+        return results
 
 class SyntheticBanditComparison:
     """Class implementing comparison of bandit algorithms on synthetic rewards.
