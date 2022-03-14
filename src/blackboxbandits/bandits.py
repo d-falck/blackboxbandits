@@ -261,7 +261,7 @@ class FPMLWithGR(AbstractFPML):
         """Implements corresponding method in `AbstractMultiBandit`.
         """
         super().observe_rewards(arms, rewards)
-        assert arms == self._last_chosen_arms, \
+        assert arms == self._selected, \
             "Rewards must be provided for the chosen arms"
         estimates = np.zeros(self.A)
         estimates[arms] += np.array(rewards) * self._geometric_resample(arms)

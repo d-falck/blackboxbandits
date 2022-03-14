@@ -16,6 +16,7 @@ from tempfile import mkdtemp
 from multiprocess import Pool, Lock
 import datetime as dt
 import itertools
+import time
 
 
 class BaseOptimizerComparison:
@@ -506,7 +507,11 @@ class MetaOptimizerComparison:
         return self._dbid
 
     def _single_meta_run(self, i) -> pd.DataFrame:
-        print(f"Starting meta-comparison, repetition {i+1} of {self.num_meta_repetitions}")
+        to_print = f"Starting meta-comparison, repetition {i+1} of {self.num_meta_repetitions}"
+        print(to_print)
+        print("-"*len(to_print))
+        start = time.time()
+        
         global lock
         lock = Lock()
         if self.parallel_meta:
@@ -524,6 +529,10 @@ class MetaOptimizerComparison:
         results.index.rename(["study_id", "optimizer", "function"], inplace=True)
         results = results.reorder_levels(["optimizer", "function", "study_id"])
         results = results.sort_values(results.index.names)
+        
+        end = time.time()
+        elapsed = end - start
+        print(f"Finished meta-comparison in {elapsed} seconds")
         return results
 
     def _process_meta_optimizer(self, name):
