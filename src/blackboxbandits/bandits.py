@@ -165,11 +165,11 @@ class FPMLFixed(AbstractFPML):
         """Implements corresponding method in `AbstractMultiBandit`.
         """
         super().observe_rewards(arms, rewards)
-        estimates = [
-            reward*self.A/self.S if arm in self._explore_arms else 0
-            for arm, reward in zip(arms, rewards)
-        ]
-        super()._full_feedback_observation(estimates)
+        estimates = np.zeros(self.A)
+        for arm, reward in zip(arms, rewards):
+            if arm in self._explore_arms:
+                estimates[arm] = reward*self.A/self.S
+        super()._full_feedback_observation(estimates.tolist())
 
 
 class FPMLProb(AbstractFPML):
@@ -210,11 +210,11 @@ class FPMLProb(AbstractFPML):
         """Implements corresponding method in `AbstractMultiBandit`.
         """
         super().observe_rewards(arms, rewards)
-        estimates = [
-            reward*self.A/(self.gamma*self.T) if arm in self._explore_arms else 0
-            for arm, reward in zip(arms, rewards)
-        ]
-        super()._full_feedback_observation(estimates)
+        estimates = np.zeros(self.A)
+        for arm, reward in zip(arms, rewards):
+            if arm in self._explore_arms:
+                estimates[arm] = reward*self.A/(self.gamma*self.T)
+        super()._full_feedback_observation(estimates.tolist())
 
 
 class FPMLWithGR(AbstractFPML):
@@ -265,7 +265,7 @@ class FPMLWithGR(AbstractFPML):
             "Rewards must be provided for the chosen arms"
         estimates = np.zeros(self.A)
         estimates[arms] += np.array(rewards) * self._geometric_resample(arms)
-        super()._full_feedback_observation(estimates)
+        super()._full_feedback_observation(estimates.tolist())
 
     def _geometric_resample(self, arms: List[int]) -> np.array:
         geom = np.full(len(arms), self._M)
