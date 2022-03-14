@@ -506,7 +506,7 @@ class MetaOptimizerComparison:
         return self._dbid
 
     def _single_meta_run(self, i) -> pd.DataFrame:
-        print(f"Starting meta-comparison, repetition {i} of {self.num_meta_repetitions}")
+        print(f"Starting meta-comparison, repetition {i+1} of {self.num_meta_repetitions}")
 
         if self.parallel_meta:
             pool = Pool() if self.num_workers is None else Pool(self.num_workers)
@@ -528,9 +528,9 @@ class MetaOptimizerComparison:
     def _process_meta_optimizer(self, name):
         meta_optimizer = self.meta_optimizers[name]
         results = []
-        for rep in self.num_repetitions:
+        for rep in range(self.num_repetitions):
             print(f"Running meta-optimizer {name} on base " \
-                  f"study {rep} of {self.num_repetitions}")
+                  f"study {rep+1} of {self.num_repetitions}")
             comp_data = self._base_comparison_data.xs(rep, level="study_id")
             meta_optimizer.run(comp_data)
             results.append(meta_optimizer.get_results())
