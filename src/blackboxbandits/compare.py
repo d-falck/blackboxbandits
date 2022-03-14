@@ -507,11 +507,12 @@ class MetaOptimizerComparison:
 
     def _single_meta_run(self, i) -> pd.DataFrame:
         print(f"Starting meta-comparison, repetition {i+1} of {self.num_meta_repetitions}")
-
+        global lock
+        lock = Lock()
         if self.parallel_meta:
             pool = Pool() if self.num_workers is None else Pool(self.num_workers)
             results = pool.map(self._process_meta_optimizer,
-                               self.meta_optimizers.keys())
+                               self.meta_optimizers.keys(), chunksize=1)
         else:
             results = [self._process_meta_optimizer(name)
                        for name in self.meta_optimizers]
@@ -529,8 +530,9 @@ class MetaOptimizerComparison:
         meta_optimizer = self.meta_optimizers[name]
         results = []
         for rep in range(self.num_repetitions):
-            print(f"Running meta-optimizer {name} on base " \
-                  f"study {rep+1} of {self.num_repetitions}")
+            with lock:
+                print(f"Running meta-optimizer {name} on base " \
+                      f"study {rep+1} of {self.num_repetitions}")
             comp_data = self._base_comparison_data.xs(rep, level="study_id")
             meta_optimizer.run(comp_data)
             results.append(meta_optimizer.get_results())

@@ -250,7 +250,7 @@ class FPMLWithGR(AbstractFPML):
         """Implements corresponding method in `AbstractMultiBandit`.
         """
         S = np.random.binomial(n=self.T, p=self.gamma)
-        leaders = super.select_arms(_num=self.T-S, _store=_store)
+        leaders = super().select_arms(_num=self.T-S, _store=_store)
         explore = np.random.choice(np.arange(self.A), size=S, replace=False)
         selected = np.unique(np.concatenate([leaders, explore])).tolist()
         if _store:
