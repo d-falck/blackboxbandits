@@ -279,6 +279,8 @@ class MetaOptimizerComparison:
         Dictionary whose values are the instantiated meta-optimizers to include
         in this comparison (these will choose combinations of the base optimizers
         defined below) and whose keys are the names used to refer to them.
+    num_repetitions : int
+        Number of times to repeat the entire base experiment for reliability.
     db_root : str
         Path to root folder in which a folder for this experiment's data will
         be created.
@@ -288,6 +290,9 @@ class MetaOptimizerComparison:
     num_workers : Optional[int], optional
         Number of worker processes to use if parallelisation is enabled. If not
         specified defaults to the number of cpu cores.
+    num_meta_repetitions : int, optional
+        Number of times to re-run the meta-optimizers on each base optimizer
+        study; averaging over meta-optimizer randomness. Defaults to 1.
 
     Attributes
     ----------
@@ -296,12 +301,16 @@ class MetaOptimizerComparison:
 
     def __init__(self,
                  meta_optimizers: Dict[str, AbstractMetaOptimizer],
+                 num_repetitions: int,
                  db_root: str,
                  parallel_meta: bool = False,
+                 num_workers: Optional[int] = None,
                  num_meta_repetitions: int = 1):
         self.meta_optimizers = meta_optimizers
+        self.num_repetitions = num_repetitions
         self.db_root = db_root
         self.parallel_meta = parallel_meta
+        self.num_workers = num_workers
         self.num_meta_repetitions = num_meta_repetitions
         
         self._meta_comparison_completed = False
@@ -366,17 +375,15 @@ class MetaOptimizerComparison:
             study; averaging over meta-optimizer randomness. Defaults to 1.
         """
 
-        instance = cls(meta_optimizers, db_root, parallel_meta, num_meta_repetitions)
+        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta, num_workers, num_meta_repetitions)
 
         instance.base_optimizers = base_optimizers
         instance.classifiers = classifiers
         instance.datasets = datasets
         instance.metrics = metrics
         instance.num_calls = num_calls
-        instance.num_repetitions = num_repetitions
         instance.datasets_root = datasets_root
         instance.parallel_base = parallel_base
-        instance.num_workers = num_workers
 
         instance._base_comparison_info_ready = True
 
@@ -386,6 +393,7 @@ class MetaOptimizerComparison:
                                          meta_optimizers: Dict[str, AbstractMetaOptimizer],
                                          db_root: str,
                                          parallel_meta: bool = False,
+                                         num_workers: Optional[int] = None,
                                          num_meta_repetitions: int = 1) -> None:
         """Construct by loading data from a previously run comparison of the base
         optimizers for this experiment.
@@ -407,11 +415,15 @@ class MetaOptimizerComparison:
         num_workers : Optional[int], optional
             Number of worker processes to use if parallelisation is enabled. If not
             specified defaults to the number of cpu cores.
+        num_meta_repetitions : int, optional
+            Number of times to re-run the meta-optimizers on each base optimizer
+            study; averaging over meta-optimizer randomness. Defaults to 1.
         """
-        instance = cls(meta_optimizers, db_root, parallel_meta, num_meta_repetitions)
+        data = BaseOptimizerComparison.get_results_for_dbid(dbid, db_root)
+        num_repetitions = len(data.index.unique(level="study_id").to_list())
+        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta, num_workers, num_meta_repetitions)
         instance._dbid = dbid
-        instance._base_comparison_data = BaseOptimizerComparison \
-            .get_results_for_dbid(instance._dbid, instance.db_root)
+        instance._base_comparison_data = data
         return instance
 
     def run_base_comparison(self) -> None:
@@ -505,7 +517,9 @@ class MetaOptimizerComparison:
         all_results = []
         for rep in range(self.num_repetitions):
             results = []
-            for meta_optimizer in self.meta_optimizers.values():
+            for i, meta_optimizer in enumerate(self.meta_optimizers.values()):
+                print(f"Base study {rep} of {self.num_repetitions}: " \
+                      f"running meta-optimizer {i} of {len(self.meta_optimizers)}")
                 comp_data = self._base_comparison_data.xs(rep, level="study_id")
                 meta_optimizer.run(comp_data)
                 results.append(meta_optimizer.get_results())
