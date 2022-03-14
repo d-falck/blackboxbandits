@@ -456,8 +456,9 @@ class MetaOptimizerComparison:
         """
         assert self._dbid is not None, "Must run or load base comparison first."
         results = [self._single_meta_run(i) for i in range(self.num_meta_repetitions)]
-        results = pd.concat(results).groupby(level=0).mean() # TODO: Check this is right
-        self._all_meta_results = results
+        self.all_meta_results = results
+        self._meta_results = pd.concat(results).groupby(level=(0,1,2)).mean()
+        
         self._meta_comparison_completed = True
 
     def full_results(self) -> pd.DataFrame:
@@ -475,7 +476,7 @@ class MetaOptimizerComparison:
              "Must complete comparison before getting results"
         base_results = self._base_comparison_data.xs("score", level=1, axis=1) \
                                         .rename(columns=lambda x: x+"_score")
-        return pd.concat([base_results, self._all_meta_results]) \
+        return pd.concat([base_results, self._meta_results]) \
                 .groupby(["optimizer", "function"]).mean() \
                     [["visible_score", "generalization_score"]]
 
