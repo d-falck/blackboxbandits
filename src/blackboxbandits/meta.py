@@ -120,6 +120,16 @@ class BestFixedTAlgos(AbstractMetaOptimizer):
         self.best_subset = best_subset
         self._scores_visible = best_scores_visible
         self._scores_generalization = best_scores_generalization
+        self._arms = ",".join([str(self._optimizers.to_list().index(opt)) \
+                                  for opt in best_subset])
+        
+    def get_history(self) -> pd.DataFrame:
+        assert self._has_run, "Must run before getting history."
+        history = [self._arms for _ in self._functions]
+        history = pd.DataFrame({
+            "arms": history
+        }, index=self._functions)
+        return history
 
 
 class BanditMetaOptimizer(AbstractMetaOptimizer):
@@ -158,6 +168,7 @@ class BanditMetaOptimizer(AbstractMetaOptimizer):
 
         self._scores_visible = []
         self._scores_generalization = []
+        self._arms_chosen = []
         for func in self._functions:
             arm_indices = bandit.select_arms()
             optimizers_chosen = self._optimizers[arm_indices].to_list()
@@ -170,3 +181,11 @@ class BanditMetaOptimizer(AbstractMetaOptimizer):
 
             self._scores_visible.append(max(visible_rewards))
             self._scores_generalization.append(max(generalization_rewards))
+            self._arms_chosen.append(",".join(map(str,arm_indices)))
+        
+    def get_history(self) -> pd.DataFrame:
+        assert self._has_run, "Must run before getting history."
+        history = pd.DataFrame({
+            "arms": self._arms_chosen
+        }, index=self._functions)
+        return history

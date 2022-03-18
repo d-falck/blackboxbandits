@@ -13,7 +13,7 @@ from bayesmark.serialize import XRSerializer
 import numpy as np
 from datetime import datetime
 from tempfile import mkdtemp
-from multiprocess import Pool, Lock
+from multiprocessing import Pool, Lock
 import datetime as dt
 import itertools
 import time
@@ -456,42 +456,73 @@ class MetaOptimizerComparison:
         """
         assert self._dbid is not None, "Must run or load base comparison first."
         results = [self._single_meta_run(i) for i in range(self.num_meta_repetitions)]
-        self.all_meta_results = results
-        self._meta_results = pd.concat(results).groupby(level=(0,1,2)).mean()
+        self.meta_results = pd.concat(results, keys=range(len(results)), names=["meta_rep"])
         
         self._meta_comparison_completed = True
 
     def full_results(self) -> pd.DataFrame:
-        """Get the full results of this meta-comparison as a dataframe.
+        """Get mean and std (over meta-repetitions) of the individual meta-optimizer
+        performances (for each problem separately).
         
-        Must have run the meta-comparison first.
+        Must have run the meta-comparison first. Averages are taken over base study
+        repetitions first.
         
         Returns
         -------
-        pd.DataFrame
-            A dataframe containing the average visible and generalization scores
-            for each base and each meta optimizer, on each task.
+        Tuple[pd.DataFrame, pd.DataFrame]
+            The first dataframe contains the mean validation and test scores, the second
+            the standard deviations.
         """
         assert self._meta_comparison_completed == True, \
              "Must complete comparison before getting results"
+        
+        # Avg over base studies
+        samples = self.meta_results.drop("arms").groupby(["optimizer", "function", "meta_rep"]).mean() \
+            [["visible_score", "generalization_score"]]
+        
+        # Stats over meta repetitions
+        mean = samples.groupby(["optimizer", "function"]).mean()
+        std = samples.groupby(["optimizer", "function"]).std()
+        
+        # Get base result means to add
         base_results = self._base_comparison_data.xs("score", level=1, axis=1) \
-                                        .rename(columns=lambda x: x+"_score")
-        return pd.concat([base_results, self._meta_results]) \
-                .groupby(["optimizer", "function"]).mean() \
-                    [["visible_score", "generalization_score"]]
+                                        .rename(columns=lambda x: x+"_score") \
+                                        .groupby(["optimizer", "function"]).mean() \
+                                        [["visible_score", "generalization_score"]]
+        mean = pd.concat([base_results, mean])
+        
+        return mean, std
 
     def summary(self) -> pd.DataFrame:
-        """Get summarized results of this meta-comparison as a dataframe.
+        """Get mean and std (over meta-repetitions) of the average meta-optimizer
+        scores (over all problems).
         
-        Must have run the meta-comparison first.
+        Must have run the meta-comparison first. Averages are taken over base study
+        repetitions first.
         
         Returns
         -------
-        pd.DataFrame
-            A dataframe containing visible and generalization scores
-            for each base and each meta optimizer averaged over all tasks.
+        Tuple[pd.DataFrame, pd.DataFrame]
+            The first dataframe contains the mean validation and test scores, the second
+            the standard deviations.
         """
-        return self.full_results().groupby(["optimizer"]).mean()
+        
+        # Avg over base studies and problems
+        samples = self.meta_results.drop(columns="arms").groupby(["optimizer", "meta_rep"]).mean() \
+            [["visible_score", "generalization_score"]]
+        
+        # Stats over meta repetitions
+        mean = samples.groupby(["optimizer"]).mean()
+        std = samples.groupby(["optimizer"]).std()
+        
+        # Get base result means to add
+        base_results = self._base_comparison_data.xs("score", level=1, axis=1) \
+                                        .rename(columns=lambda x: x+"_score") \
+                                        .groupby(["optimizer"]).mean() \
+                                        [["visible_score", "generalization_score"]]
+        mean = pd.concat([base_results, mean])
+        
+        return mean, std
 
     def get_dbid(self):
         """Get the unique DBID associated with the base optimizer comparison
@@ -518,7 +549,7 @@ class MetaOptimizerComparison:
         if self.parallel_meta:
             pool = Pool() if self.num_workers is None else Pool(self.num_workers)
             results = pool.map(self._process_meta_optimizer,
-                               self.meta_optimizers.keys(), chunksize=1)
+                               self.meta_optimizers, chunksize=1)
         else:
             results = [self._process_meta_optimizer(name)
                        for name in self.meta_optimizers]
@@ -545,7 +576,9 @@ class MetaOptimizerComparison:
                       f"study {rep+1} of {self.num_repetitions}")
             comp_data = self._base_comparison_data.xs(rep, level="study_id")
             meta_optimizer.run(comp_data)
-            results.append(meta_optimizer.get_results())
+            res = meta_optimizer.get_results()
+            res["arms"] = meta_optimizer.get_history()["arms"]
+            results.append(res)
         return results
 
 class SyntheticBanditComparison:
