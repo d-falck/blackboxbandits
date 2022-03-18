@@ -568,6 +568,7 @@ class MetaOptimizerComparison:
         return results
 
     def _process_meta_optimizer(self, name):
+        np.random.seed()
         meta_optimizer = self.meta_optimizers[name]
         results = []
         for rep in range(self.num_repetitions):
@@ -580,6 +581,7 @@ class MetaOptimizerComparison:
             res["arms"] = meta_optimizer.get_history()["arms"]
             results.append(res)
         return results
+
 
 class SyntheticBanditComparison:
     """Class implementing comparison of bandit algorithms on synthetic rewards.
