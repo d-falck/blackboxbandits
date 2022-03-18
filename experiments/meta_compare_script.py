@@ -1,5 +1,6 @@
 from blackboxbandits import compare, bandits, meta, utils
 import pandas as pd
+import numpy as np
 
 DBID = "bo_20220228_124924_b7rkpeqg"
 
@@ -29,13 +30,21 @@ fpml_gr_probexp = {
 
 meta_optimizers = {**fpml_fixedexp, **fpml_probexp, **fpml_gr_noexp, **fpml_gr_probexp}
 
+# meta_optimizers = {
+#     f"fpml_gr_probexp_{gamma:.1f}_{T}": meta.BanditMetaOptimizer(
+#         bandit_type=bandits.FPMLWithGR,
+#         T=T, gamma=gamma)
+#     for gamma in np.arange(0.0,1.1,0.1)
+#     for T in range(1,7)
+# }
+
 meta_comparison = compare.MetaOptimizerComparison \
                          .from_precomputed_base_comparison(
     dbid=DBID,
     meta_optimizers=meta_optimizers,
     db_root = "./base_results",
     parallel_meta = True,
-    num_meta_repetitions = 300
+    num_meta_repetitions = 100
 )
 
 meta_comparison.run_meta_comparison()

@@ -477,7 +477,7 @@ class MetaOptimizerComparison:
              "Must complete comparison before getting results"
         
         # Avg over base studies
-        samples = self.meta_results.drop("arms").groupby(["optimizer", "function", "meta_rep"]).mean() \
+        samples = self.meta_results.drop(columns="arms").groupby(["optimizer", "function", "meta_rep"]).mean() \
             [["visible_score", "generalization_score"]]
         
         # Stats over meta repetitions

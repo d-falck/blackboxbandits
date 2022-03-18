@@ -118,7 +118,7 @@ class AbstractFPML(AbstractMultiBandit):
         perturbations = np.random.exponential(scale=1/self.epsilon, size=self.A)
         perturbed_cum_est_rewards = self._cum_est_rewards + perturbations
         leaderboard = np.argsort(perturbed_cum_est_rewards)
-        leaders = leaderboard[-_num:]
+        leaders = leaderboard[-_num:] if _num > 0 else np.array([])
         return leaders.tolist()
 
     def _full_feedback_observation(self, rewards: List[float]) -> None:
@@ -158,8 +158,9 @@ class FPMLFixed(AbstractFPML):
         """
         leaders = super().select_arms(_num=self.T-self.S)
         self._explore_arms = np.random.choice(np.arange(self.A),
-                                              size=self.S, replace=False)
-        return np.unique(np.concatenate([leaders, self._explore_arms])).tolist()
+                                              size=self.S,
+                                              replace=False).tolist()
+        return list(set(leaders+self._explore_arms))
 
     def observe_rewards(self, arms: List[int], rewards: List[float]) -> None:
         """Implements corresponding method in `AbstractMultiBandit`.
@@ -203,8 +204,10 @@ class FPMLProb(AbstractFPML):
         """
         S = np.random.binomial(n=self.T, p=self.gamma)
         leaders = super().select_arms(_num=self.T-S)
-        self._explore_arms = np.random.choice(np.arange(self.A), size=S, replace=False)
-        return np.unique(np.concatenate([leaders, self._explore_arms])).tolist()
+        self._explore_arms = np.random.choice(np.arange(self.A),
+                                              size=S,
+                                              replace=False).tolist()
+        return list(set(leaders+self._explore_arms))
 
     def observe_rewards(self, arms: List[int], rewards: List[float]) -> None:
         """Implements corresponding method in `AbstractMultiBandit`.
@@ -251,8 +254,8 @@ class FPMLWithGR(AbstractFPML):
         """
         S = np.random.binomial(n=self.T, p=self.gamma)
         leaders = super().select_arms(_num=self.T-S, _store=_store)
-        explore = np.random.choice(np.arange(self.A), size=S, replace=False)
-        selected = np.unique(np.concatenate([leaders, explore])).tolist()
+        explore = np.random.choice(np.arange(self.A), size=S, replace=False).tolist()
+        selected = list(set(leaders+explore))
         if _store:
             self._selected = selected
         return selected
