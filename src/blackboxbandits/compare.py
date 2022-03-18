@@ -547,12 +547,12 @@ class MetaOptimizerComparison:
         global lock
         lock = Lock()
         if self.parallel_meta:
-            pool = Pool() if self.num_workers is None else Pool(self.num_workers)
-            results = pool.map(self._process_meta_optimizer,
-                               self.meta_optimizers, chunksize=1)
+            with Pool(self.num_workers) as pool:
+                results = pool.map(self._process_meta_optimizer,
+                                   self.meta_optimizers, chunksize=1)
         else:
-            results = [self._process_meta_optimizer(name)
-                       for name in self.meta_optimizers]
+            results = map(self._process_meta_optimizer,
+                          self.meta_optimizers)
         
         results = list(map(list, zip(*results))) # Transpose
         results = [pd.concat(dfs, keys=self.meta_optimizers.keys()) for dfs in results]
