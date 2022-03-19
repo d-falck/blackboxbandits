@@ -17,6 +17,7 @@ from multiprocessing import Pool, Lock
 import datetime as dt
 import itertools
 import time
+from . import utils
 
 
 class BaseOptimizerComparison:
@@ -294,6 +295,9 @@ class MetaOptimizerComparison:
     num_meta_repetitions : int, optional
         Number of times to re-run the meta-optimizers on each base optimizer
         study; averaging over meta-optimizer randomness. Defaults to 1.
+    alternative_order : bool, optional
+        ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+        to interleave MLP with lasso, instead of all MLP then all lasso.
 
     Attributes
     ----------
@@ -306,17 +310,20 @@ class MetaOptimizerComparison:
                  db_root: str,
                  parallel_meta: bool = False,
                  num_workers: Optional[int] = None,
-                 num_meta_repetitions: int = 1):
+                 num_meta_repetitions: int = 1,
+                 alternative_order: bool = False):
         self.meta_optimizers = meta_optimizers
         self.num_repetitions = num_repetitions
         self.db_root = db_root
         self.parallel_meta = parallel_meta
         self.num_workers = num_workers
         self.num_meta_repetitions = num_meta_repetitions
+        self.alternative_order = alternative_order
         
         self._meta_comparison_completed = False
         self._dbid: Optional[str] = None
         self._base_comparison_info_ready = False
+        self._order = None
 
     @classmethod
     def from_base_comparison_setup(cls,
@@ -332,7 +339,8 @@ class MetaOptimizerComparison:
                                    parallel_base: bool = False,
                                    parallel_meta: bool = False,
                                    num_workers: Optional[int] = None,
-                                   num_meta_repetitions: int = 1):
+                                   num_meta_repetitions: int = 1,
+                                   alternative_order: bool = False):
         """Construct from base comparison setup info.
         
         Parameters
@@ -374,9 +382,13 @@ class MetaOptimizerComparison:
         num_meta_repetitions : int, optional
             Number of times to re-run the meta-optimizers on each base optimizer
             study; averaging over meta-optimizer randomness. Defaults to 1.
+        alternative_order : bool, optional
+            ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+            to interleave MLP with lasso, instead of all MLP then all lasso.
         """
 
-        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta, num_workers, num_meta_repetitions)
+        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta,
+                       num_workers, num_meta_repetitions, alternative_order)
 
         instance.base_optimizers = base_optimizers
         instance.classifiers = classifiers
@@ -395,7 +407,8 @@ class MetaOptimizerComparison:
                                          db_root: str,
                                          parallel_meta: bool = False,
                                          num_workers: Optional[int] = None,
-                                         num_meta_repetitions: int = 1) -> None:
+                                         num_meta_repetitions: int = 1,
+                                         alternative_order: bool = False) -> None:
         """Construct by loading data from a previously run comparison of the base
         optimizers for this experiment.
 
@@ -419,12 +432,17 @@ class MetaOptimizerComparison:
         num_meta_repetitions : int, optional
             Number of times to re-run the meta-optimizers on each base optimizer
             study; averaging over meta-optimizer randomness. Defaults to 1.
+        alternative_order : bool, optional
+            ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+            to interleave MLP with lasso, instead of all MLP then all lasso.
         """
         data = BaseOptimizerComparison.get_results_for_dbid(dbid, db_root)
         num_repetitions = len(data.index.unique(level="study_id").to_list())
-        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta, num_workers, num_meta_repetitions)
+        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta,
+                       num_workers, num_meta_repetitions, alternative_order)
         instance._dbid = dbid
         instance._base_comparison_data = data
+        instance._calculate_order()
         return instance
 
     def run_base_comparison(self) -> None:
@@ -448,6 +466,7 @@ class MetaOptimizerComparison:
         base_comparison.run()
         self._dbid = base_comparison.get_dbid()
         self._base_comparison_data = base_comparison.get_results()
+        self._calculate_order()
 
     def run_meta_comparison(self):
         """Run the comparison of meta-optimizers over the base optimizers.
@@ -576,12 +595,20 @@ class MetaOptimizerComparison:
                 print(f"Running meta-optimizer {name} on base " \
                       f"study {rep+1} of {self.num_repetitions}")
             comp_data = self._base_comparison_data.xs(rep, level="study_id")
-            meta_optimizer.run(comp_data)
+            meta_optimizer.run(comp_data, function_order=self._order)
             res = meta_optimizer.get_results()
             res["arms"] = meta_optimizer.get_history()["arms"]
             results.append(res)
         return results
 
+    def _calculate_order(self):
+        assert self._dbid is not None
+        if self.alternative_order:
+            functions = self._base_comparison_data.index.unique("function").to_list()
+            mlp = filter(lambda x: x.startswith("MLP"), functions)
+            lasso = filter(lambda x: x.startswith("lasso"), functions)
+            order = utils.interleave_lists(mlp, lasso)
+            self._order = order
 
 class SyntheticBanditComparison:
     """Class implementing comparison of bandit algorithms on synthetic rewards.

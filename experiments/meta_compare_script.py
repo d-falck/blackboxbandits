@@ -57,33 +57,33 @@ DBID = "bo_20220228_124924_b7rkpeqg"
 
 #---------MAIN COMPARISON---------------
 
-# factors = [(a,b) for a in range(1,7) for b in range(1,7) if a*b < 7 and b > 1]
+factors = [(a,b) for a in range(1,7) for b in range(1,7) if a*b < 7 and b > 1]
 
-# PREFIX = "streeter"
-# REPS = 100
-# fpml = {f"fpml_{T}": meta.BanditMetaOptimizer(
-#             bandit_type=bandits.FPMLWithGR,
-#             T=T, gamma=0.2, epsilon=0.3)
-#         for T in range(1,7)}
-# streeter_fpml = {
-#     f"streeter_fpml_{a}x{b}": meta.BanditMetaOptimizer(
-#         bandit_type=bandits.StreeterFPML,
-#         T=a*b, T_1=a, T_2=b, gamma=0.2, epsilon=0.3, gr=True)
-#     for a,b in factors}
-# streeter_exp3 = {
-#     f"streeter_exp3_{T}": meta.BanditMetaOptimizer(
-#         bandit_type=bandits.Streeter,
-#         T=T)
-#     for T in range(1,7)}
-# meta_optimizers = {**fpml, **streeter_fpml, **streeter_exp3}
+PREFIX = "streeter"
+REPS = 100
+fpml = {f"fpml_{T}": meta.BanditMetaOptimizer(
+            bandit_type=bandits.FPMLWithGR,
+            T=T, gamma=0.2, epsilon=0.3)
+        for T in range(1,7)}
+streeter_fpml = {
+    f"streeter_fpml_{a}x{b}": meta.BanditMetaOptimizer(
+        bandit_type=bandits.StreeterFPML,
+        T=a*b, T_1=a, T_2=b, gamma=0.2, epsilon=0.3, gr=True)
+    for a,b in factors}
+streeter_exp3 = {
+    f"streeter_exp3_{T}": meta.BanditMetaOptimizer(
+        bandit_type=bandits.Streeter,
+        T=T)
+    for T in range(1,7)}
+meta_optimizers = {**fpml, **streeter_fpml, **streeter_exp3}
 
 #-----------BEST------------
 
-PREFIX = "best"
-REPS = 1
-meta_optimizers = {
-    f"best_{T}": meta.BestFixedTAlgos(T=T)
-    for T in range(1,7)}
+# PREFIX = "best"
+# REPS = 1
+# meta_optimizers = {
+#     f"best_{T}": meta.BestFixedTAlgos(T=T)
+#     for T in range(1,7)}
 
 #===============================================================
 
@@ -93,7 +93,8 @@ meta_comparison = compare.MetaOptimizerComparison \
     meta_optimizers=meta_optimizers,
     db_root = "experiments/base_results",
     parallel_meta = True,
-    num_meta_repetitions = REPS
+    num_meta_repetitions = REPS,
+    alternative_order = True
 )
 
 meta_comparison.run_meta_comparison()

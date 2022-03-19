@@ -1,6 +1,6 @@
 import pandas as pd
 from ipywidgets import interact
-from typing import List
+from typing import List, Any
 
 def filter_results(results: pd.DataFrame, budget: int):
     """Filters a meta-comparison summary dataframe by budget.
@@ -46,3 +46,9 @@ def visualise_by_budget(results: pd.DataFrame, max=7) -> None:
 
 def synthesize_rewards(num_actions: int, num_rounds: int, regime: str) -> pd.DataFrame:
     raise NotImplementedError()
+
+def interleave_lists(xs: List[Any], ys: List[Any]) -> List[Any]:
+    n = len(xs)
+    m = len(ys)
+    p = min(n,m)
+    return [x for pair in zip(xs[:p],ys[:p]) for x in pair] + xs[p:] + ys[p:]
