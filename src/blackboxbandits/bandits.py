@@ -194,9 +194,10 @@ class FPMLProb(AbstractFPML):
         rewards at each round.
     """
 
-    def __init__(self, A: int, T: int, n: int, gamma: float):
+    def __init__(self, A: int, T: int, n: int, gamma: float, epsilon: Optional[float] = None):
         self.gamma = gamma
-        super().__init__(A, T, n, epsilon=gamma*T/A*(np.log(A)/n)**(1/(T-gamma*T+1)))
+        eps = gamma*T/A*(np.log(A)/n)**(1/(T-gamma*T+1)) if epsilon is None else epsilon
+        super().__init__(A, T, n, epsilon=eps)
         # Value of epsilon adapted from Thm 3.9
 
     def select_arms(self) -> List[int]:
@@ -241,11 +242,13 @@ class FPMLWithGR(AbstractFPML):
         rewards at each round.
     """
 
-    def __init__(self, A: int, T: int, n: int, gamma: float=0):
+    def __init__(self, A: int, T: int, n: int,
+                 gamma: float=0, epsilon: Optional[float] = None):
         self.gamma = gamma
         self._M = int(np.ceil(np.sqrt(A*(n/np.log(A))**(T/(T+1)))))
-        super().__init__(A, T, n,
-                         epsilon=np.sqrt(1/A*(n/np.log(A))**((T-2)/(T+1))))
+        eps = np.sqrt(1/A*(n/np.log(A))**((T-2)/(T+1))) \
+              if epsilon is None else epsilon
+        super().__init__(A, T, n, epsilon=eps)
         # Values from Prop 3.11
         # TODO: Update these for gamma>0 case
 
@@ -308,14 +311,14 @@ class StreeterFPML(AbstractMultiBandit):
     The parameters `T_1` and `T_2` must multiply to `T`.
     """
 
-    def __init__(self, A: int, T: int, T_1: int, T_2: int, n: int, gamma: float, gr: bool = False):
+    def __init__(self, A: int, T: int, T_1: int, T_2: int, n: int, gamma: float, gr: bool = False, epsilon: Optional[float] = None):
         assert T_1 * T_2 == T, "Time parameters must multiply to total budget"
         self.T_1 = T_1
         self.T_2 = T_2
         self.gamma = gamma
         self.gr = gr
         fpml_class = FPMLWithGR if gr else FPMLProb
-        self._internal_fpml_instances = [fpml_class(A, T_1, n, gamma)
+        self._internal_fpml_instances = [fpml_class(A, T_1, n, gamma, epsilon)
                                          for _ in range(T_2)]
         super().__init__(A, T, n)
 
