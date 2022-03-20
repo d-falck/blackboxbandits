@@ -18,6 +18,7 @@ import datetime as dt
 import itertools
 import time
 from . import utils
+from . import synthetic
 
 
 class BaseOptimizerComparison:
@@ -605,32 +606,29 @@ class MetaOptimizerComparison:
         assert self._dbid is not None
         if self.alternative_order:
             functions = self._base_comparison_data.index.unique("function").to_list()
-            mlp = filter(lambda x: x.startswith("MLP"), functions)
-            lasso = filter(lambda x: x.startswith("lasso"), functions)
+            mlp = list(filter(lambda x: x.startswith("MLP"), functions))
+            lasso = list(filter(lambda x: x.startswith("lasso"), functions))
             order = utils.interleave_lists(mlp, lasso)
             self._order = order
+
 
 class SyntheticBanditComparison:
     """Class implementing comparison of bandit algorithms on synthetic rewards.
 
     Parameters
     ----------
-    rewards : pd.DataFrame
-        A dataframe of float rewards in [0,1], with columns representing different
-        actions and rows representing different rounds.
-    bandits : List[AbstractMultiBandit]
-        A dict of initialized bandit objects for comparison on these rewards,
-        keyed by names for reference.
-    best_fixed_budgets : List[int]
-        A list of integers action budgets for which to evaluate the best fixed
-        action set in hindsight (as well as running the given bandits).
+    environment : synthetic.Environment
+        An environment specification to generate synthetic rewards.
+    algos : List[synthetic.Algorithm]
+        A list of algorithms to run on the generated synthetic rewards.
     parallel: bool, optional
         Whether to use multiple processes for evaluation. Defaults to False.
     num_workers : int, optional
         How many worker processes to use, if `parallel` is True. If not specified,
         defaults to the number of available cores.
     num_repetitions : int, optional
-        How many times to repeat the evaluation for reliability. Defaults to 1.
+        How many times to repeat the evaluation for reliability. Repetitions are
+        over randomness in algorithms and in the environment. Defaults to 1.
 
     Attributes
     ----------
@@ -638,14 +636,13 @@ class SyntheticBanditComparison:
     """
 
     def __init__(self,
-                 rewards: pd.DataFrame,
-                 bandits: Dict[str, AbstractMultiBandit],
-                 best_fixed_budgets: List[int],
+                 environment: synthetic.Environment,
+                 algos: List[synthetic.Algorithm],
                  parallel: bool = False,
                  num_workers: Optional[int] = None,
                  num_repetitions: int = 1):
-        self.rewards = rewards
-        self.bandits = bandits
+        self.environment = environment
+        self.algos = algos
         self.best_fixed_budgets = best_fixed_budgets
         self.parallel = parallel
         self.num_workers = num_workers

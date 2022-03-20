@@ -132,6 +132,68 @@ class BestFixedTAlgos(AbstractMetaOptimizer):
         return history
 
 
+class TopTBestAlgos(AbstractMetaOptimizer):
+    """A meta-optimizer which runs the top T individually best
+    best possible algorithms together on the presented tasks.
+
+    Implements `AbstractMetaOptimizer`.
+
+    Parameters
+    ----------
+    T : int
+        The number of optimizers to include in the fixed set.
+
+    Attributes
+    ----------
+    Same as parameters, plus:
+    top_T : List[str]
+        A list of the names of the underlying optimizers in the T-subset used.
+    """
+
+    def __init__(self, T: int):
+        super().__init__()
+        self.T = T
+        self.top_T = None
+
+    def run(self, data: pd.DataFrame,
+            function_order: Optional[List[str]] = None) -> None:
+        """Implements corresponding method from `AbstractMetaOptimizer`.
+        """
+        super().run(data, function_order)
+
+        # First run each optimizer individually
+        scores = pd.DataFrame(index=self._functions, columns=self._optimizers)
+        for func in self._functions:
+            rewards = data.loc[pd.IndexSlice[self._optimizers,func],:]
+            scores.loc[func, :] = rewards["visible"]["score"].to_list()
+
+        leaderboard = scores.mean().sort_values(ascending=False)
+        self.top_T = leaderboard.index.to_list()[:self.T]
+
+        # Then run the top T of them together
+        scores_visible = []
+        scores_generalization = []
+        for func in self._functions:
+            rewards = data.loc[pd.IndexSlice[self.top_T,func],:]
+            visible = rewards["visible"]["score"].to_list()
+            generalization = rewards["generalization"]["score"].to_list()
+            scores_visible.append(max(visible))
+            scores_generalization.append(max(generalization))
+
+        self._scores_visible = scores_visible
+        self._scores_generalization = scores_generalization
+        self._arms = ",".join([str(self._optimizers.to_list().index(opt)) \
+                                  for opt in self.top_T])
+        
+    def get_history(self) -> pd.DataFrame:
+        assert self._has_run, "Must run before getting history."
+        history = [self._arms for _ in self._functions]
+        history = pd.DataFrame({
+            "arms": history
+        }, index=self._functions)
+        return history
+
+
 class BanditMetaOptimizer(AbstractMetaOptimizer):
     """A meta-optimizer which runs a specified multi-bandit algorithm on the
     tasks presented.
