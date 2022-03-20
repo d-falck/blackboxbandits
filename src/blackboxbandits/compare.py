@@ -2,10 +2,7 @@
 combinations of them (which we call meta-optimizers) on various ML tasks.
 """
 
-from xml.dom.minidom import parseString
 import pandas as pd
-from .meta import AbstractMetaOptimizer
-from .bandits import AbstractMultiBandit
 import os
 import subprocess
 from typing import List, Optional, Dict, Tuple
@@ -15,11 +12,10 @@ from datetime import datetime
 from tempfile import mkdtemp
 from multiprocessing import Pool, Lock
 import datetime as dt
-import itertools
 import time
 from . import utils
 from . import synthetic
-
+from . import meta
 
 class BaseOptimizerComparison:
     """Interface for comparing standard black-box optimizers on ML tasks.
@@ -306,7 +302,7 @@ class MetaOptimizerComparison:
     """
 
     def __init__(self,
-                 meta_optimizers: Dict[str, AbstractMetaOptimizer],
+                 meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
                  num_repetitions: int,
                  db_root: str,
                  parallel_meta: bool = False,
@@ -328,7 +324,7 @@ class MetaOptimizerComparison:
 
     @classmethod
     def from_base_comparison_setup(cls,
-                                   meta_optimizers: Dict[str, AbstractMetaOptimizer],
+                                   meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
                                    base_optimizers: List[str],
                                    classifiers: List[str],
                                    datasets: List[str],
@@ -404,7 +400,7 @@ class MetaOptimizerComparison:
     @classmethod
     def from_precomputed_base_comparison(cls,
                                          dbid: str,
-                                         meta_optimizers: Dict[str, AbstractMetaOptimizer],
+                                         meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
                                          db_root: str,
                                          parallel_meta: bool = False,
                                          num_workers: Optional[int] = None,
@@ -612,15 +608,15 @@ class MetaOptimizerComparison:
             self._order = order
 
 
-class SyntheticBanditComparison:
-    """Class implementing comparison of bandit algorithms on synthetic rewards.
+class SyntheticComparison:
+    """Class implementing comparison of algorithms on synthetic rewards.
 
     Parameters
     ----------
-    environment : synthetic.Environment
+    environment : synthetic.AbstractEnvironment
         An environment specification to generate synthetic rewards.
-    algos : List[synthetic.Algorithm]
-        A list of algorithms to run on the generated synthetic rewards.
+    algos : Dict[str, synthetic.AbstractAlgorithm]
+        A dict of named algorithms to run on the generated synthetic rewards.
     parallel: bool, optional
         Whether to use multiple processes for evaluation. Defaults to False.
     num_workers : int, optional
@@ -636,50 +632,93 @@ class SyntheticBanditComparison:
     """
 
     def __init__(self,
-                 environment: synthetic.Environment,
-                 algos: List[synthetic.Algorithm],
+                 environment: synthetic.AbstractEnvironment,
+                 algos: Dict[str, synthetic.AbstractAlgorithm],
                  parallel: bool = False,
                  num_workers: Optional[int] = None,
                  num_repetitions: int = 1):
         self.environment = environment
         self.algos = algos
-        self.best_fixed_budgets = best_fixed_budgets
         self.parallel = parallel
         self.num_workers = num_workers
         self.num_repetitions = num_repetitions
-
-        self.n = rewards.shape[0]
-        self.A = rewards.shape[1]
-        self.arms = rewards.columns.to_numpy()
-        alg_names = list(bandits.keys()) + [f"best_fixed_{T}" for T in best_fixed_budgets]
-        self._results = pd.DataFrame(0, index=rewards.index, columns=alg_names)
         self._has_run = False
 
-        assert all(bandit.n == self.n and bandit.A == self.A for bandit in bandits), \
-            "Given bandits must be set up for the right number of arms and rounds."
-
     def run(self) -> None:
-        # Run bandits
-        for round, rewards in self.rewards.iterrows():
-            for bandit_name, bandit in self.bandits.items():
-                arm_indices = bandit.select_arms()
-                arms = self.arms[arm_indices]
-                feedback = rewards[arms]
-                bandit.observe_rewards(arm_indices, feedback.to_list())
-                self._results[round, bandit_name] = feedback.max()
-
-        # Compute best fixed-in-hindsight action sets
-        for T in self.best_fixed_budgets:
-            subsets = list(itertools.combinations(self.arms.tolist(), T))
-            best_subset_rewards = np.full(self.n, -1)
-            for subset in subsets:
-                subset_rewards = self.rewards[:,subset].max(axis=1).to_numpy()
-                if subset_rewards.sum() > best_subset_rewards.sum():
-                    best_subset_rewards = subset_rewards
-            self._results[:, f"best_fixed_{T}"] = best_subset_rewards
-
+        """Run the comparison of algorithms.
+        """
+        results = [self._single_run(rep) for rep in range(self.num_repetitions)]
+        self.results = pd.concat(results,
+                                 keys=range(len(results)),
+                                 names=["rep"])
         self._has_run = True
 
-    def get_results(self) -> pd.DataFrame:
+    def full_results(self) -> pd.DataFrame:
+        """Get mean and std (over trials) of individual algorithm
+        performances on each round separately.
+        
+        Must have run the comparison first.
+        
+        Returns
+        -------
+        pd.DataFrame
+        """
         assert self._has_run, "Must run first."
-        return self._results
+        samples = self.results.loc[:,"score"] # Series
+
+        mean = samples.groupby(["algo", "round"]).mean()
+        std = samples.groupby(["algo", "round"]).std()
+        return pd.DataFrame({"mean": mean, "std": std})
+
+    def summary(self) -> pd.DataFrame:
+        """Get mean and std (over trials) of average algorithm
+        scores (over all rounds).
+        
+        Must have run the comparison first.
+        
+        Returns
+        -------
+        pd.DataFrame
+        """
+        assert self._has_run, "Must run first."
+        samples = self.results.loc[:,"score"].groupby("round").mean()
+
+        mean = samples.groupby("algo").mean()
+        std = samples.groupby("algo").std()
+        return pd.DataFrame({"mean": mean, "std": std})
+
+    def _single_run(self, rep):
+        to_print = f"Starting trial {rep+1} of {self.num_repetitions}"
+        print(to_print)
+        print("-"*len(to_print))
+        start = time.time()
+
+        self._rewards = self.environment.generate_rewards()
+
+        global lock
+        lock = Lock()
+        if self.parallel:
+            with Pool(self.num_workers) as pool:
+                results = pool.map(self._process_algo, self.algos, chunksize=1)
+        else:
+            results = map(self._process_algo, self.algos)
+
+        results = pd.concat(results, keys=self.algos.keys(), names=["algo"])
+
+        end = time.time()
+        elapsed = end - start
+        print(f"Finished trial in {elapsed} seconds")
+        return results
+
+    def _process_algo(self, name):
+        np.random.seed()
+        with lock:
+            print(f"Running algorithm {name}")
+        algo = self.algos[name]
+        algo.run(self._rewards)
+        scores = algo.get_results()
+        history = list(map(lambda x: ",".join(map(str,x)), algo.get_history()))
+        df = pd.DataFrame({"score": scores, "choice": history},
+                            index=self._rewards.index)
+        df.index.name = "round"
+        return df
