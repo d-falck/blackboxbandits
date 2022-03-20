@@ -1,7 +1,7 @@
 from blackboxbandits import compare, bandits, synthetic
 
 
-PREFIX = "synth1"
+PREFIX = "synth2"
 
 
 factors = [(a,b) for a in range(1,9) for b in range(1,9) if a*b < 9 and b > 1]
@@ -30,7 +30,7 @@ streeter_exp3 = {
 algos = {**best, **top, **fpml, **streeter_fpml, **streeter_exp3}
 
 
-environment = synthetic.Synth1Environment(n=500)
+environment = synthetic.Synth2Environment(n=500)
 
 
 comparison = compare.SyntheticComparison(

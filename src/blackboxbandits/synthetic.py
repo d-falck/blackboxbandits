@@ -51,7 +51,7 @@ class Synth2Environment(AbstractEnvironment):
             means = ([0.8,0.7,0.6,0.5,0,0,0,0]
                      if type == "A"
                      else [0,0,0,0,0.8,0.7,0.6,0.5])
-            df[round,:] = [np.random.binomial(1,mean) for mean in means]
+            df.loc[round,:] = [np.random.binomial(1,mean) for mean in means]
         return df
 
 class AbstractAlgorithm(ABC):
