@@ -36,8 +36,8 @@ environment = synthetic.Synth1Environment(n=500)
 comparison = compare.SyntheticComparison(
     environment=environment,
     algos=algos,
-    parallel=False,
-    num_repetitions=200
+    parallel=True,
+    num_repetitions=100
 )
 
 

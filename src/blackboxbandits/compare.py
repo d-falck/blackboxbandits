@@ -681,7 +681,7 @@ class SyntheticComparison:
         pd.DataFrame
         """
         assert self._has_run, "Must run first."
-        samples = self.results.loc[:,"score"].groupby("round").mean()
+        samples = self.results.loc[:,"score"].groupby(["algo","rep"]).mean()
 
         mean = samples.groupby("algo").mean()
         std = samples.groupby("algo").std()
