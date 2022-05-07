@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from ipywidgets import interact
 from typing import List, Any
 
@@ -52,3 +53,13 @@ def interleave_lists(xs: List[Any], ys: List[Any]) -> List[Any]:
     m = len(ys)
     p = min(n,m)
     return [x for pair in zip(xs[:p],ys[:p]) for x in pair] + xs[p:] + ys[p:]
+
+def beta_params(mean, var):
+    nu = mean*(1-mean)/var - 1
+    assert nu > 0
+    alpha = mean*nu
+    beta = (1-mean)*nu
+    return alpha, beta
+
+def gen_sigmoid(x, center=0, rate=1):
+    return 1 / (1 + np.exp(-rate*(x-center)))

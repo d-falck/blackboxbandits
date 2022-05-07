@@ -8,7 +8,8 @@ import itertools
 import pandas as pd
 import numpy as np
 
-from .bandits import AbstractMultiBandit
+from . import utils, bandits
+
 
 class AbstractEnvironment(ABC):
     """Abstract interface for a potentially randomised synthetic
@@ -27,35 +28,80 @@ class AbstractEnvironment(ABC):
         """Generate rewards for this environment.
         """
 
+
 class Synth1Environment(AbstractEnvironment):
     """Randomised environment for the first synthetic environment
-    in the experimental write-up (the anticorrelated one).
+    in the experimental write-up (the anticorrelated one with gap).
     """
     def generate_rewards(self) -> pd.DataFrame:
-        df = pd.DataFrame(index=range(self.n), columns=range(1,9))
+        df = pd.DataFrame(index=range(self.n), columns=range(1,16))
         for round in range(self.n):
-            type = "A" if np.random.binomial(1,0.5) == 1 else "B"
-            means = ([0.8,0.7,0.6,0.5,0,0,0,0]
-                     if type == "A"
-                     else [0,0,0,0,0.4,0.3,0.2,0.1])
-            df.loc[round,:] = [np.random.binomial(1,mean) for mean in means]
+            type_A = np.random.binomial(1,0.5) == 1
+            if type_A:
+                rewards1 = np.random.beta(*utils.beta_params(mean=0.6,var=0.01),size=5)
+                rewards2 = np.random.beta(*utils.beta_params(mean=0.4,var=0.01),size=5)
+                rewards3 = np.zeros(5)
+            else:
+                rewards1 = np.zeros(5)
+                rewards2 = np.zeros(5)
+                rewards3 = np.random.beta(*utils.beta_params(mean=0.2,var=0.01),size=5)
+            df.loc[round,:] = np.concatenate((rewards1,rewards2,rewards3))
         return df
+
+
 class Synth2Environment(AbstractEnvironment):
     """Randomised environment for the second synthetic environment
+    in the experimental write-up (the anticorrelated one with no gap).
+    """
+    def generate_rewards(self) -> pd.DataFrame:
+        df = pd.DataFrame(index=range(self.n), columns=range(1,11))
+        for round in range(self.n):
+            # p = utils.gen_sigmoid(round, center=self.n/2, rate=0.05)
+            p = 0
+            second_regime = np.random.binomial(1,p) == 1
+            beta_means = [0.2,0.3,0.4,0.5,0.6] if second_regime else [0.6,0.5,0.4,0.3,0.2]
+            type_A = np.random.binomial(1,0.5) == 1
+            if type_A:
+                rewards1 = np.array([np.random.beta(*utils.beta_params(mean,var=0.01))
+                                     for mean in beta_means])
+                rewards2 = np.zeros(5)
+            else:
+                rewards1 = np.zeros(5)
+                rewards2 = np.array([np.random.beta(*utils.beta_params(mean,var=0.01))
+                                     for mean in beta_means])
+            if second_regime:
+                rewards1, rewards2 = rewards2, rewards1
+            df.loc[round,:] = np.concatenate((rewards1,rewards2))
+        return df
+
+
+class Synth3Environment(AbstractEnvironment):
+    """Randomised environment for the third synthetic environment
     in the experimental write-up (the correlated one).
     """
     def generate_rewards(self) -> pd.DataFrame:
-        df = pd.DataFrame(index=range(self.n), columns=range(1,9))
+        df = pd.DataFrame(index=range(self.n), columns=range(1,11))
         for round in range(self.n):
-            type = "A" if np.random.binomial(1,0.5) == 1 else "B"
-            means = ([0.8,0.7,0.6,0.5,0,0,0,0]
-                     if type == "A"
-                     else [0,0,0,0,0.8,0.7,0.6,0.5])
-            df.loc[round,:] = [np.random.binomial(1,mean) for mean in means]
+            beta_means = [0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.2,0.15]
+            rewards = np.array([np.random.beta(*utils.beta_params(mean,var=0.01))
+                                for mean in beta_means])
+            df.loc[round,:] = rewards
         return df
 
+
+class TomCounterexample(AbstractEnvironment):
+    def generate_rewards(self) -> pd.DataFrame:
+        assert self.n > 100
+        df = pd.DataFrame(index=range(self.n), columns=["A","B"])
+        for round in range(100):
+            df.loc[round,:] = [1,0]
+        for round in range(100,self.n):
+            df.loc[round,:] = [0,1]
+        return df
+
+
 class AbstractAlgorithm(ABC):
-    """Represents an algorithm for to run in a synthetic enviroment.
+    """Represents an algorithm to run in a synthetic enviroment.
     Equivalent to `AbstractMetaOptimizer` but for synthetic environments.
     """
     @abstractmethod
@@ -84,6 +130,40 @@ class AbstractAlgorithm(ABC):
         """Gets the arms chosen at each round.
         """
         assert self._has_run, "Must run before getting history."
+
+
+class SingleArm(AbstractAlgorithm):
+    """An algorithm which pulls a specified single arm
+    at each round in the environment.
+    
+    Implements `AbstractAlgorithm`.
+    
+    Parameters
+    ----------
+    i : int
+        The index of the arm to be pulled.
+        
+    Attributes
+    ----------
+    Same as parameters.
+    """
+    def __init__(self, i: int):
+        super().__init__()
+        self.i = i
+
+    def run(self, rewards: pd.DataFrame) -> None:
+        """Implements corresponding method from `AbstractAlgorithm`.
+        """
+        super().run(rewards)
+
+        arm = rewards.columns[self.i]
+        self._scores = rewards.loc[:,arm].to_list()
+        self._arms_chosen = [arm]
+
+    def get_history(self) -> List[List[int]]:
+        super().get_history()
+        return [self._arms_chosen for _ in range(self._n)]
+
 
 class BestFixedTArms(AbstractAlgorithm):
     """An algorithm which runs the best possible fixed combination
@@ -163,7 +243,7 @@ class TopTBestArms(AbstractAlgorithm):
 
     def get_history(self) -> List[List[int]]:
         super().get_history()
-        return [self._arms.to_list() for _ in range(self._n)]
+        return [self._arms_chosen for _ in range(self._n)]
 
 
 class BanditAlgorithm(AbstractAlgorithm):
@@ -183,7 +263,7 @@ class BanditAlgorithm(AbstractAlgorithm):
     ----------
     Same as parameters.
     """
-    def __init__(self, bandit_type: Type[AbstractMultiBandit],
+    def __init__(self, bandit_type: Type[bandits.AbstractMultiBandit],
                  T: int, **bandit_kwargs):
         super().__init__()
         self.bandit_type = bandit_type
