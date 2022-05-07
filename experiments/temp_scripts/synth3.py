@@ -1,9 +1,10 @@
 from blackboxbandits import compare, bandits, synthetic
 
-# PREFIX = "synth1_updated"
-# PREFIX = "synth2_updated"
-PREFIX = "synth3_updated"
-# PREFIX = "synth4_updated"
+# PREFIX = "synth1"
+# PREFIX = "synth2a"
+# PREFIX = "synth2b"
+PREFIX = "synth3"
+# PREFIX = "synth4"
 
 
 factors = [(a,b) for a in range(1,6) for b in range(1,6) if a*b < 6 and b > 1]
@@ -20,12 +21,12 @@ top = {
 fpml = {
     f"fpml_{T}": synthetic.BanditAlgorithm(
         bandit_type=bandits.FPMLWithGR,
-        T=T, gamma=0.2)
+        T=T, gamma=0)
     for T in range(1,6)}
 streeter_fpml = {
     f"streeter_fpml_{a}x{b}": synthetic.BanditAlgorithm(
         bandit_type=bandits.StreeterFPML,
-        T=a*b, T_1=a, T_2=b, gamma=0.2, gr=True)
+        T=a*b, T_1=a, T_2=b, gamma=0, gr=True)
     for a,b in factors}
 streeter_exp3 = {
     f"streeter_exp3_{T}": synthetic.BanditAlgorithm(
@@ -38,6 +39,7 @@ algos = {**single, **best, **top,
 
 # environment = synthetic.Synth1Environment(n=300)
 # environment = synthetic.Synth2Environment(n=300)
+# environment = synthetic.Synth2Environment(n=300, include_regime_change=True)
 environment = synthetic.Synth3Environment(n=300)
 # environment = synthetic.Synth4Environment(n=300)
 

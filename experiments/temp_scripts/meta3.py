@@ -6,7 +6,7 @@ DBID = "bo_20220228_124924_b7rkpeqg"
 
 #-------FPML VARIANT--------------
 
-# PREFIX = "fpml_updated"
+# PREFIX = "fpml"
 # S = 1
 # GAMMA = lambda T: 1/T
 # REPS = 100
@@ -36,19 +36,19 @@ DBID = "bo_20220228_124924_b7rkpeqg"
 
 #-------PERTURBATION RATE--------------
 
-# PREFIX = "pert_updated"
+# PREFIX = "pert"
 # REPS = 50
 # meta_optimizers = {
 #     f"fpml_gr_probexp_{epsilon:.3f}_{T}": meta.BanditMetaOptimizer(
 #         bandit_type=bandits.FPMLWithGR,
-#         T=T, gamma=0.2, epsilon=epsilon)
+#         T=T, gamma=0, epsilon=epsilon)
 #     for epsilon in np.logspace(-3,3,num=13)
 #     for T in range(1,7)
 # }
 
 #-------EXPLORATION RATE--------------
 
-# PREFIX = "exp_updated"
+# PREFIX = "exp"
 # REPS = 50
 # meta_optimizers = {
 #     f"fpml_gr_probexp_{gamma:.1f}_{T}": meta.BanditMetaOptimizer(
@@ -62,17 +62,17 @@ DBID = "bo_20220228_124924_b7rkpeqg"
 
 factors = [(a,b) for a in range(1,7) for b in range(1,7) if a*b < 7 and b > 1]
 
-PREFIX = "streeter_updated"
+PREFIX = "streeteralt"
 REPS = 100
 
 fpml = {f"fpml_{T}": meta.BanditMetaOptimizer(
             bandit_type=bandits.FPMLWithGR,
-            T=T, gamma=0.2)
+            T=T, gamma=0)
         for T in range(1,7)}
 streeter_fpml = {
     f"streeter_fpml_{a}x{b}": meta.BanditMetaOptimizer(
         bandit_type=bandits.StreeterFPML,
-        T=a*b, T_1=a, T_2=b, gamma=0.2, gr=True)
+        T=a*b, T_1=a, T_2=b, gamma=0, gr=True)
     for a,b in factors}
 streeter_exp3 = {
     f"streeter_exp3_{T}": meta.BanditMetaOptimizer(
@@ -110,7 +110,7 @@ meta_comparison = compare.MetaOptimizerComparison \
     db_root="experiments/base_results",
     parallel_meta=True,
     num_meta_repetitions=REPS,
-    alternative_order=False
+    alternative_order=True
 )
 
 meta_comparison.run_meta_comparison()

@@ -1,8 +1,8 @@
 from blackboxbandits import compare, bandits, synthetic
 
-PREFIX = "synth1"
+# PREFIX = "synth1"
 # PREFIX = "synth2a"
-# PREFIX = "synth2b"
+PREFIX = "synth2b"
 # PREFIX = "synth3"
 # PREFIX = "synth4"
 
@@ -37,9 +37,9 @@ algos = {**single, **best, **top,
          **fpml, **streeter_fpml, **streeter_exp3}
 
 
-environment = synthetic.Synth1Environment(n=300)
+# environment = synthetic.Synth1Environment(n=300)
 # environment = synthetic.Synth2Environment(n=300)
-# environment = synthetic.Synth2Environment(n=300, include_regime_change=True)
+environment = synthetic.Synth2Environment(n=300, include_regime_change=True)
 # environment = synthetic.Synth3Environment(n=300)
 # environment = synthetic.Synth4Environment(n=300)
 

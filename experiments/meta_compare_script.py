@@ -6,45 +6,45 @@ DBID = "bo_20220228_124924_b7rkpeqg"
 
 #-------FPML VARIANT--------------
 
-# PREFIX = "fpml_updated"
-# S = 1
-# GAMMA = lambda T: 1/T
-# REPS = 100
+PREFIX = "fpml_updated"
+S = 1
+GAMMA = lambda T: 1/T
+REPS = 100
 
-# fpml_fixedexp = {
-#     f"fpml_fixedexp_{T}": meta.BanditMetaOptimizer(
-#         bandit_type=bandits.FPMLFixed,
-#         T=T, S=S)
-#     for T in range(2,7)}
-# fpml_probexp = {
-#     f"fpml_probexp_{T}": meta.BanditMetaOptimizer(
-#         bandit_type=bandits.FPMLProb,
-#         T=T, gamma=GAMMA(T))
-#     for T in range(2,7)}
-# fpml_gr_noexp = {
-#     f"fpml_gr_noexp_{T}": meta.BanditMetaOptimizer(
-#         bandit_type=bandits.FPMLWithGR,
-#         T=T, gamma=0)
-#     for T in range(2,7)}
-# fpml_gr_probexp = {
-#     f"fpml_gr_probexp_{T}": meta.BanditMetaOptimizer(
-#         bandit_type=bandits.FPMLWithGR,
-#         T=T, gamma=GAMMA(T))
-#     for T in range(2,7)}
+fpml_fixedexp = {
+    f"fpml_fixedexp_{T}": meta.BanditMetaOptimizer(
+        bandit_type=bandits.FPMLFixed,
+        T=T, S=S)
+    for T in range(2,7)}
+fpml_probexp = {
+    f"fpml_probexp_{T}": meta.BanditMetaOptimizer(
+        bandit_type=bandits.FPMLProb,
+        T=T, gamma=GAMMA(T))
+    for T in range(2,7)}
+fpml_gr_noexp = {
+    f"fpml_gr_noexp_{T}": meta.BanditMetaOptimizer(
+        bandit_type=bandits.FPMLWithGR,
+        T=T, gamma=0)
+    for T in range(2,7)}
+fpml_gr_probexp = {
+    f"fpml_gr_probexp_{T}": meta.BanditMetaOptimizer(
+        bandit_type=bandits.FPMLWithGR,
+        T=T, gamma=GAMMA(T))
+    for T in range(2,7)}
 
-# meta_optimizers = {**fpml_fixedexp, **fpml_probexp, **fpml_gr_noexp, **fpml_gr_probexp}
+meta_optimizers = {**fpml_fixedexp, **fpml_probexp, **fpml_gr_noexp, **fpml_gr_probexp}
 
 #-------PERTURBATION RATE--------------
 
-PREFIX = "pert_updated"
-REPS = 50
-meta_optimizers = {
-    f"fpml_gr_probexp_{epsilon:.3f}_{T}": meta.BanditMetaOptimizer(
-        bandit_type=bandits.FPMLWithGR,
-        T=T, gamma=0.2, epsilon=epsilon)
-    for epsilon in np.logspace(-3,3,num=13)
-    for T in range(1,7)
-}
+# PREFIX = "pert_updated"
+# REPS = 50
+# meta_optimizers = {
+#     f"fpml_gr_probexp_{epsilon:.3f}_{T}": meta.BanditMetaOptimizer(
+#         bandit_type=bandits.FPMLWithGR,
+#         T=T, gamma=0, epsilon=epsilon)
+#     for epsilon in np.logspace(-3,3,num=13)
+#     for T in range(1,7)
+# }
 
 #-------EXPLORATION RATE--------------
 
@@ -67,12 +67,12 @@ meta_optimizers = {
 
 # fpml = {f"fpml_{T}": meta.BanditMetaOptimizer(
 #             bandit_type=bandits.FPMLWithGR,
-#             T=T, gamma=0.2)
+#             T=T, gamma=0)
 #         for T in range(1,7)}
 # streeter_fpml = {
 #     f"streeter_fpml_{a}x{b}": meta.BanditMetaOptimizer(
 #         bandit_type=bandits.StreeterFPML,
-#         T=a*b, T_1=a, T_2=b, gamma=0.2, gr=True)
+#         T=a*b, T_1=a, T_2=b, gamma=0, gr=True)
 #     for a,b in factors}
 # streeter_exp3 = {
 #     f"streeter_exp3_{T}": meta.BanditMetaOptimizer(

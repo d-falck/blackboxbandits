@@ -52,12 +52,20 @@ class Synth1Environment(AbstractEnvironment):
 class Synth2Environment(AbstractEnvironment):
     """Randomised environment for the second synthetic environment
     in the experimental write-up (the anticorrelated one with no gap).
+
+    If `include_regime_change` is True, then the environment will switch the
+    order of the beta distribution means halfway through the experiment.
     """
     def generate_rewards(self) -> pd.DataFrame:
+        def __init__(self, n: int, include_regime_change: bool=False):
+            super().__init__(n)
+            self._regime_change = include_regime_change
+
         df = pd.DataFrame(index=range(self.n), columns=range(1,11))
         for round in range(self.n):
-            # p = utils.gen_sigmoid(round, center=self.n/2, rate=0.05)
-            p = 0
+            p = (utils.gen_sigmoid(round, center=self.n/2, rate=0.05)
+                 if self._regime_change
+                 else 0)
             second_regime = np.random.binomial(1,p) == 1
             beta_means = [0.2,0.3,0.4,0.5,0.6] if second_regime else [0.6,0.5,0.4,0.3,0.2]
             type_A = np.random.binomial(1,0.5) == 1
