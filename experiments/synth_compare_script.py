@@ -4,7 +4,6 @@ PREFIX = "synth1"
 # PREFIX = "synth2a"
 # PREFIX = "synth2b"
 # PREFIX = "synth3"
-# PREFIX = "synth4"
 
 
 factors = [(a,b) for a in range(1,6) for b in range(1,6) if a*b < 6 and b > 1]
@@ -41,7 +40,6 @@ environment = synthetic.Synth1Environment(n=300)
 # environment = synthetic.Synth2Environment(n=300)
 # environment = synthetic.Synth2Environment(n=300, include_regime_change=True)
 # environment = synthetic.Synth3Environment(n=300)
-# environment = synthetic.Synth4Environment(n=300)
 
 
 comparison = compare.SyntheticComparison(
