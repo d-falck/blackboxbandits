@@ -97,14 +97,30 @@ class Synth3Environment(AbstractEnvironment):
         return df
 
 
-class TomCounterexample(AbstractEnvironment):
+
+class Synth4Environment(AbstractEnvironment):
+    """Randomised environment for the fourth synthetic environment
+    in the experimental write-up (where greediness is bad).
+
+    Must have n=4k rounds for some k.
+    """
     def generate_rewards(self) -> pd.DataFrame:
-        assert self.n > 100
-        df = pd.DataFrame(index=range(self.n), columns=["A","B"])
-        for round in range(100):
-            df.loc[round,:] = [1,0]
-        for round in range(100,self.n):
-            df.loc[round,:] = [0,1]
+        assert self.n % 4 == 0
+        epsilon = 0.01
+        x = 0.5 - epsilon
+        df = pd.DataFrame(index=range(self.n), columns=range(1,4))
+        for round in range(self.n):
+            if self.n % 4 == 0:
+                rewards = np.array([1-epsilon,x,0,1])
+            elif self.n % 4 == 1:
+                rewards = np.array([1-epsilon,x,1,0])
+            elif self.n % 4 == 2:
+                rewards = np.array([0,1,0,1])
+            elif self.n % 4 == 3:
+                rewards = np.array([0,1,1,0])
+            else:
+                raise ValueError("Unhandled case")
+            df.loc[round,:] = rewards
         return df
 
 
