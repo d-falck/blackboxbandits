@@ -97,7 +97,6 @@ class Synth3Environment(AbstractEnvironment):
         return df
 
 
-
 class Synth4Environment(AbstractEnvironment):
     """Randomised environment for the fourth synthetic environment
     in the experimental write-up (where greediness is bad).
@@ -106,18 +105,17 @@ class Synth4Environment(AbstractEnvironment):
     """
     def generate_rewards(self) -> pd.DataFrame:
         assert self.n % 4 == 0
-        epsilon = 0.01
-        x = 0.5 - epsilon
+        delta = 0.01
         df = pd.DataFrame(index=range(self.n), columns=range(1,5))
         for round in range(self.n):
-            if self.n % 4 == 0:
-                rewards = np.array([1-epsilon,x,0,1])
-            elif self.n % 4 == 1:
-                rewards = np.array([1-epsilon,x,1,0])
-            elif self.n % 4 == 2:
-                rewards = np.array([0,1,0,1])
-            elif self.n % 4 == 3:
-                rewards = np.array([0,1,1,0])
+            if round % 4 == 0:
+                rewards = np.array([delta,0.5+delta,1,0])
+            elif round % 4 == 1:
+                rewards = np.array([delta,0.5+delta,0,1])
+            elif round % 4 == 2:
+                rewards = np.array([1,0,1,0])
+            elif round % 4 == 3:
+                rewards = np.array([1,0,0,1])
             else:
                 raise ValueError("Unhandled case")
             df.loc[round,:] = rewards
