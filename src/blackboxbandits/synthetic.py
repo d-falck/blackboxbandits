@@ -56,11 +56,11 @@ class Synth2Environment(AbstractEnvironment):
     If `include_regime_change` is True, then the environment will switch the
     order of the beta distribution means halfway through the experiment.
     """
-    def generate_rewards(self) -> pd.DataFrame:
-        def __init__(self, n: int, include_regime_change: bool=False):
-            super().__init__(n)
-            self._regime_change = include_regime_change
+    def __init__(self, n: int, include_regime_change: bool=False):
+        super().__init__(n)
+        self._regime_change = include_regime_change
 
+    def generate_rewards(self) -> pd.DataFrame:
         df = pd.DataFrame(index=range(self.n), columns=range(1,11))
         for round in range(self.n):
             p = (utils.gen_sigmoid(round, center=self.n/2, rate=0.05)
