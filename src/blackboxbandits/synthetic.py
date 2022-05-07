@@ -108,7 +108,7 @@ class Synth4Environment(AbstractEnvironment):
         assert self.n % 4 == 0
         epsilon = 0.01
         x = 0.5 - epsilon
-        df = pd.DataFrame(index=range(self.n), columns=range(1,4))
+        df = pd.DataFrame(index=range(self.n), columns=range(1,5))
         for round in range(self.n):
             if self.n % 4 == 0:
                 rewards = np.array([1-epsilon,x,0,1])
