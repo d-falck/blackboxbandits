@@ -269,8 +269,8 @@ class FPMLWithGR(AbstractFPML):
         super().observe_rewards(arms, rewards)
         assert arms == self._selected, \
             "Rewards must be provided for the chosen arms"
-        estimates = np.zeros(self.A)
-        estimates[arms] += np.array(rewards) * self._geometric_resample(arms)
+        estimates = np.ones(self.A)
+        estimates[arms] -= (1-np.array(rewards)) * self._geometric_resample(arms)
         super()._full_feedback_observation(estimates.tolist())
 
     def _geometric_resample(self, arms: List[int]) -> np.array:
