@@ -36,27 +36,27 @@ DBID = "bo_20220228_124924_b7rkpeqg"
 
 #-------PERTURBATION RATE--------------
 
-PREFIX = "pert_updated"
-REPS = 50
-meta_optimizers = {
-    f"fpml_gr_probexp_{epsilon:.3f}_{T}": meta.BanditMetaOptimizer(
-        bandit_type=bandits.FPMLWithGR,
-        T=T, gamma=0.2, epsilon=epsilon)
-    for epsilon in np.logspace(-3,3,num=13)
-    for T in range(1,7)
-}
+# PREFIX = "pert_updated"
+# REPS = 50
+# meta_optimizers = {
+#     f"fpml_gr_probexp_{epsilon:.3f}_{T}": meta.BanditMetaOptimizer(
+#         bandit_type=bandits.FPMLWithGR,
+#         T=T, gamma=0.2, epsilon=epsilon)
+#     for epsilon in np.logspace(-3,3,num=13)
+#     for T in range(1,7)
+# }
 
 #-------EXPLORATION RATE--------------
 
-# PREFIX = "exp_updated"
-# REPS = 50
-# meta_optimizers = {
-#     f"fpml_gr_probexp_{gamma:.1f}_{T}": meta.BanditMetaOptimizer(
-#         bandit_type=bandits.FPMLWithGR,
-#         T=T, gamma=gamma)
-#     for gamma in np.arange(0.0,1.1,0.1)
-#     for T in range(1,7)
-# }
+PREFIX = "exp_updated"
+REPS = 50
+meta_optimizers = {
+    f"fpml_gr_probexp_{gamma:.1f}_{T}": meta.BanditMetaOptimizer(
+        bandit_type=bandits.FPMLWithGR,
+        T=T, gamma=gamma)
+    for gamma in np.arange(0.0,1.1,0.1)
+    for T in range(1,7)
+}
 
 #---------MAIN COMPARISON---------------
 
