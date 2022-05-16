@@ -6,11 +6,11 @@ A package for comparing black-box optimization algorithms and bandit combination
 
 Run `pip install -e .` from the repository root.
 
-_Note it may be necessary to use our forked version of Bayesmark to avoid one assertion error; this can be installed by cloning the repo `https://github.com/d-falck/bayesmark` and running `pip install -e .`._
+_Note it may be necessary to use our forked version of Bayesmark to avoid one assertion error; this can be installed by cloning the repo `https://github.com/candidate-1034792/bayesmark` and running `pip install -e .`._
 
 ## Package documentation
 
-Package documentation can be found in the `docs` directory and are auto-generated at https://d-falck.github.io/blackboxbandits/.
+HTML package documentation can be found in the `docs` directory.
 
 ## Experimental results
 
@@ -25,10 +25,11 @@ The experimental results used for the paper are included in the `experiments` di
 
 The experimental results can be reproduced using the scripts in the `experiments` directory:
 
-- `experiments/evaluate_optimizers.py` will reproduce the base optimizer scores on the PMLB datasets (this will take a lot of compute)
-- `experiments/compare_bandit_algos.py` will reproduce the bandit algorithm scores given the completed base comparison
-- `experiments/best_in_hindsight.py` will do the same for the best-in-hindsight optimizer sets
-- `experiments/synthetic_env_X.py` for `X=A,B,C` will reproduce the bandit algorithm scores on the three synthetic environments in the paper
+- `experiments/evaluate_optimizers.py` will reproduce the base optimizer scores on the PMLB datasets (this will take a lot of compute).
+- `experiments/compare_bandit_algos.py` will reproduce the bandit algorithm scores given the completed base comparison.
+- `experiments/best_in_hindsight.py` will do the same for the best-in-hindsight optimizer sets.
+- `experiments/synthetic_env_X.py` for `X=A,B,C` will reproduce the bandit algorithm scores on the three synthetic environments in the paper.
 
 ## License
 
+This project is licensed under the terms of the MIT license.
