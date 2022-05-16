@@ -1,6 +1,6 @@
 from blackboxbandits import compare, bandits, synthetic
 
-PREFIX = "synth4"
+PREFIX = "synthC"
 
 single = {f"single_arm{i}": synthetic.SingleArm(i=i)
           for i in range(4)}
