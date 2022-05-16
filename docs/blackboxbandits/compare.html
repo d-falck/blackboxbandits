@@ -1,0 +1,2352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>blackboxbandits.compare API documentation</title>
+<meta name="description" content="Provides interfaces to run experiments comparing black-box optimizers and
+combinations of them (which we call meta-optimizers) on various ML tasks." />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>blackboxbandits.compare</code></h1>
+</header>
+<section id="section-intro">
+<p>Provides interfaces to run experiments comparing black-box optimizers and
+combinations of them (which we call meta-optimizers) on various ML tasks.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Provides interfaces to run experiments comparing black-box optimizers and
+combinations of them (which we call meta-optimizers) on various ML tasks.
+&#34;&#34;&#34;
+
+import pandas as pd
+import os
+import subprocess
+from typing import List, Optional, Dict, Tuple
+from bayesmark.serialize import XRSerializer
+import numpy as np
+from datetime import datetime
+from tempfile import mkdtemp
+from multiprocessing import Pool, Lock
+import datetime as dt
+import time
+from . import utils
+from . import synthetic
+from . import meta
+
+class BaseOptimizerComparison:
+    &#34;&#34;&#34;Interface for comparing standard black-box optimizers on ML tasks.
+
+    Parameters
+    ----------
+    optimizers : List[str]
+        List of standard optimizer names known to Bayesmark.
+    classifiers : List[str]
+        List of sklearn classification methods known to Bayesmark.
+    datasets : List[str]
+        List of classification/regression datasets known to Bayesmark.
+    metrics : List[str]
+        List of loss functions known to Bayesmark. Must include at least one
+        regression and one classification loss function if `datasets` includes
+        both types of task.
+    num_calls : int
+        Number of function evaluations allowed by each optimizer on each task.
+    num_repetitions : int
+        Number of times to repeat the entire experiment for reliability.
+    db_root : str
+        Path to root folder in which a folder for this experiment&#39;s data will
+        be created.
+    datasets_root : Optional[str], optional
+        Path to directory containing csv files for referenced datasets. Defaults
+        to None.
+    parallel : bool, optional
+        Whether to run the experiments as a pool of tasks across multiple worker
+        threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
+
+    Attributes
+    ----------
+    Same as parameters.
+    &#34;&#34;&#34;
+
+    def __init__(self,
+                 optimizers: List[str],
+                 classifiers: List[str],
+                 datasets: List[str],
+                 metrics: List[str],
+                 num_calls: int,
+                 num_repetitions: int,
+                 db_root: str,
+                 datasets_root: Optional[str] = None,
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None):
+        
+        self.optimizers = optimizers
+        self.classifiers = classifiers
+        self.datasets = datasets
+        self.metrics = metrics
+        self.num_calls = num_calls
+        self.num_repetitions = num_repetitions
+        self.db_root = db_root
+        self.datasets_root = datasets_root
+        self.parallel = parallel
+        self.num_workers = num_workers
+        self._dbid: Optional[str] = None
+
+    def run(self) -&gt; None:
+        &#34;&#34;&#34;Run the comparison experiment defined by this class.
+
+        May take a while, depending on whether parallelisation is enabled.
+
+        Notes
+        -----
+
+        If parallelisation is enabled, this generates and uses a temporary
+        file `jobs.txt` in the current directory.
+        &#34;&#34;&#34;
+        launcher_args = {
+            &#34;-dir&#34;: self.db_root,
+            &#34;-o&#34;: &#34; &#34;.join(self.optimizers),
+            &#34;-d&#34;: &#34; &#34;.join(self.datasets),
+            &#34;-c&#34;: &#34; &#34;.join(self.classifiers),
+            &#34;-m&#34;: &#34; &#34;.join(self.metrics),
+            &#34;-n&#34;: str(self.num_calls),
+            &#34;-r&#34;: str(self.num_repetitions)
+        }
+        if self.datasets_root is not None:
+            launcher_args[&#34;-dr&#34;] = self.datasets_root
+        if self.parallel: # Will create list of independent commands to run
+            # Approximate number of indep. experiments in this comparison
+            launcher_args[&#34;-nj&#34;] = str(len(self.optimizers) * len(self.datasets) \
+                                 * len(self.classifiers) * self.num_repetitions)
+
+            # Generate dbid for whole batch
+            folder_prefix = datetime.utcnow().strftime(&#34;bo_%Y%m%d_%H%M%S_&#34;)
+            exp_subdir = mkdtemp(prefix=folder_prefix, dir=self.db_root)
+            self._dbid = os.path.basename(exp_subdir)
+            launcher_args[&#34;-b&#34;] = self._dbid
+
+            # Setup dbid folder
+            for name in [&#34;derived&#34;, &#34;log&#34;, &#34;eval&#34;, &#34;time&#34;, &#34;suggest_log&#34;]:
+                os.mkdir(os.path.join(exp_subdir, name))
+
+        # Run Bayesmark experiment launcher
+        launcher_command = &#34;bayesmark-launch &#34; + &#34; &#34;.join(
+            [key + &#34; &#34; + value for key, value in launcher_args.items()]
+        )
+        launcher_command += &#34; -v&#34;
+        p = subprocess.Popen(launcher_command,
+                             stderr=subprocess.PIPE, shell=True)
+        while p.poll() is None:
+            l = p.stderr.readline().decode(&#34;utf-8&#34;)
+            print(l)
+            if &#34;Supply --db&#34; in l:
+                dbid_string = l
+
+        # If parallel we now need to run the generated commands
+        if self.parallel:
+            self._run_parallel_commands(self._dbid)
+        else:
+            # Get DBID
+            dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
+                                + len(&#34;Supply --db&#34;) + 1
+            dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
+            assert dbid_start_index != -1 and dbid_end_index != -1
+            self._dbid = dbid_string[dbid_start_index:dbid_end_index]
+
+        # Aggregate results
+        os.system(f&#39;bayesmark-agg -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)
+
+        # Analyse results (will compute baselines which we&#39;ll use)
+        os.system(f&#39;bayesmark-anal -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)
+
+    def get_dbid(self) -&gt; int:
+        &#34;&#34;&#34;Get the unique DBID of this comparison.
+        
+        This is the name of the folder this comparison&#39;s data is saved in.
+        Must run comparison first.
+
+        Returns
+        -------
+        int
+            The DBID of this experiment.
+        &#34;&#34;&#34;
+        assert self._dbid is not None, &#34;Must run comparison first.&#34;
+        return self._dbid
+
+    def get_results(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get the results of this comparison as a dataframe.
+
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe containing the results of this comparison.
+        &#34;&#34;&#34;
+        return self.get_results_for_dbid(self._dbid, self.db_root)
+
+    def _run_parallel_commands(self, dbid: int) -&gt; None:
+        with open(&#34;./jobs.txt&#34;,&#34;r&#34;) as f:
+            jobs = f.readlines()[2:]
+        cmd_start_idx = jobs[0].find(&#34;bayesmark-exp&#34;)
+        job_commands = {job[:cmd_start_idx-1]: job[cmd_start_idx:].strip()
+                        for job in jobs}
+        
+        l = Lock() # We&#39;ll make `lock&#39; global among pooled processes
+        pool = Pool(self.num_workers, initializer=self._pool_init, initargs=(l,)) \
+               if self.num_workers is not None \
+               else Pool(initializer=self._pool_init, initargs=(l,))
+        print(f&#34;Starting processing {len(job_commands)} jobs.&#34;)
+        pool.map(self._process_individual_command, job_commands.items(), chunksize=1)
+        pool.close()
+        pool.join()
+        print(&#34;Finished processing all jobs.&#34;)
+
+    def _process_individual_command(self, job: Tuple[str, str]):
+        with lock:
+            print(&#34;Starting job&#34;, job[0], &#34;at&#34;, dt.datetime.now().isoformat())
+        try:
+            subprocess.run(job[1], shell=True)
+        except:
+            with lock:
+                print(f&#34;Job {job[0]} failed&#34;)
+        else:
+            with lock:
+                print(&#34;Finished job&#34;, job[0], &#34;at&#34;, dt.datetime.now().isoformat())
+            
+    def _pool_init(self, l):
+        global lock
+        lock = l
+
+    @classmethod
+    def get_results_for_dbid(cls, dbid: str, db_root: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get the results of a particular comparison specified by its DBID.
+
+        Parameters
+        ----------
+        dbid : str
+            The DBID of the comparison to get results for.
+        db_root : str
+            Path to the directory containing the folder for
+            the relevant comparison.
+        
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe containing the result of the specified comparison.
+        &#34;&#34;&#34;
+        # Read data saved by Bayesmark
+        abs_db_root = os.path.abspath(db_root)
+        saved_eval = XRSerializer.load_derived(db_root=abs_db_root,
+                                               db=dbid,
+                                               key=&#34;eval&#34;)
+        eval = saved_eval[0].to_dataframe()
+        saved_baseline = XRSerializer.load_derived(db_root=abs_db_root,
+                                                   db=dbid,
+                                                   key=&#34;baseline&#34;)
+        baseline = saved_baseline[0].to_dataframe()
+
+        # Massage into nice format
+        baseline = baseline[[&#34;mean&#34;,&#34;best&#34;]] \
+            .groupby(level=[&#34;objective&#34;,&#34;function&#34;]).min()
+        baseline = baseline.unstack(level=&#34;objective&#34;)
+        baseline.columns = [&#34;visible_baseline&#34;, &#34;generalization_baseline&#34;,
+                            &#34;visible_opt&#34;, &#34;generalization_opt&#34;]
+        eval = eval.droplevel(&#34;suggestion&#34;)
+        eval = eval.reorder_levels([&#34;optimizer&#34;, &#34;function&#34;,
+                                    &#34;study_id&#34;, &#34;iter&#34;])
+        eval = eval.sort_values(eval.index.names)
+        eval = eval.groupby(level=[&#34;optimizer&#34;,&#34;function&#34;,&#34;study_id&#34;]).min()
+        eval = eval.rename(columns={&#34;_visible_to_opt&#34;: &#34;visible&#34;})
+        eval = eval.rename(columns=lambda x: x + &#34;_achieved&#34;)
+        data = eval.join(baseline, on=&#34;function&#34;)
+
+        # Calculate normalized scores
+        data[&#34;generalization_score&#34;] = cls._constrain(
+            1 - (data[&#34;generalization_achieved&#34;] - data[&#34;generalization_opt&#34;]) \
+            / (data[&#34;generalization_baseline&#34;] - data[&#34;generalization_opt&#34;])
+        )
+        data[&#34;visible_score&#34;] = cls._constrain(
+            1 - (data[&#34;visible_achieved&#34;] - data[&#34;visible_opt&#34;]) \
+            / (data[&#34;visible_baseline&#34;] - data[&#34;visible_opt&#34;])
+        )
+
+        data = data.reindex(sorted(data.columns), axis=1)
+        data.columns = data.columns.str.split(&#34;_&#34;, expand=True)
+
+        return data.dropna() # TODO: may want to remove dropna
+
+    @staticmethod
+    def _constrain(series):
+        return np.maximum(np.minimum(series, 1), 0)
+
+
+class MetaOptimizerComparison:
+    &#34;&#34;&#34;Interface for comparing *combinations* of standard black-box
+    optimizers on ML tasks.
+
+    Do not use the default constructor, use `from_base_comparison_setup` or
+    `from_precomputed_base_comparison`.
+
+    Parameters
+    ----------
+    meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+        Dictionary whose values are the instantiated meta-optimizers to include
+        in this comparison (these will choose combinations of the base optimizers
+        defined below) and whose keys are the names used to refer to them.
+    num_repetitions : int
+        Number of times to repeat the entire base experiment for reliability.
+    db_root : str
+        Path to root folder in which a folder for this experiment&#39;s data will
+        be created.
+    parallel_meta : bool, optional
+        Whether to run the meta experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
+    num_meta_repetitions : int, optional
+        Number of times to re-run the meta-optimizers on each base optimizer
+        study; averaging over meta-optimizer randomness. Defaults to 1.
+    alternative_order : bool, optional
+        ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+        to interleave MLP with lasso, instead of all MLP then all lasso.
+
+    Attributes
+    ----------
+    Same as parameters of whichever constructor used.
+    &#34;&#34;&#34;
+
+    def __init__(self,
+                 meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
+                 num_repetitions: int,
+                 db_root: str,
+                 parallel_meta: bool = False,
+                 num_workers: Optional[int] = None,
+                 num_meta_repetitions: int = 1,
+                 alternative_order: bool = False):
+        self.meta_optimizers = meta_optimizers
+        self.num_repetitions = num_repetitions
+        self.db_root = db_root
+        self.parallel_meta = parallel_meta
+        self.num_workers = num_workers
+        self.num_meta_repetitions = num_meta_repetitions
+        self.alternative_order = alternative_order
+        
+        self._meta_comparison_completed = False
+        self._dbid: Optional[str] = None
+        self._base_comparison_info_ready = False
+        self._order = None
+
+    @classmethod
+    def from_base_comparison_setup(cls,
+                                   meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
+                                   base_optimizers: List[str],
+                                   classifiers: List[str],
+                                   datasets: List[str],
+                                   metrics: List[str],
+                                   num_calls: int,
+                                   num_repetitions: int,
+                                   db_root: str,
+                                   datasets_root: Optional[str] = None,
+                                   parallel_base: bool = False,
+                                   parallel_meta: bool = False,
+                                   num_workers: Optional[int] = None,
+                                   num_meta_repetitions: int = 1,
+                                   alternative_order: bool = False):
+        &#34;&#34;&#34;Construct from base comparison setup info.
+        
+        Parameters
+        ----------
+        meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+            Dictionary whose values are the instantiated meta-optimizers to include
+            in this comparison (these will choose combinations of the base optimizers
+            defined below) and whose keys are the names used to refer to them.
+        base_optimizers : List[str]
+            List of standard optimizer names known to Bayesmark to be used as the
+            base optimizers for this comparison.
+        classifiers : List[str]
+            List of sklearn classification methods known to Bayesmark.
+        datasets : List[str]
+            List of classification/regression datasets known to Bayesmark.
+        metrics : List[str]
+            List of loss functions known to Bayesmark. Must include at least one
+            regression and one classification loss function if `datasets` includes
+            both types of task.
+        num_calls : int
+            Number of function evaluations allowed by each optimizer on each task.
+        num_repetitions : int
+            Number of times to repeat the entire experiment for reliability.
+        db_root : str
+            Path to root folder in which a folder for this experiment&#39;s data will
+            be created.
+        datasets_root : Optional[str], optional
+            Path to directory containing csv files for referenced datasets. Defaults
+            to None.
+        parallel_base : bool, optional
+            Whether to run the base experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        parallel_meta : bool, optional
+            Whether to run the meta experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        num_workers : Optional[int], optional
+            Number of worker processes to use if parallelisation is enabled. If not
+            specified defaults to the number of cpu cores.
+        num_meta_repetitions : int, optional
+            Number of times to re-run the meta-optimizers on each base optimizer
+            study; averaging over meta-optimizer randomness. Defaults to 1.
+        alternative_order : bool, optional
+            ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+            to interleave MLP with lasso, instead of all MLP then all lasso.
+        &#34;&#34;&#34;
+
+        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta,
+                       num_workers, num_meta_repetitions, alternative_order)
+
+        instance.base_optimizers = base_optimizers
+        instance.classifiers = classifiers
+        instance.datasets = datasets
+        instance.metrics = metrics
+        instance.num_calls = num_calls
+        instance.datasets_root = datasets_root
+        instance.parallel_base = parallel_base
+
+        instance._base_comparison_info_ready = True
+
+    @classmethod
+    def from_precomputed_base_comparison(cls,
+                                         dbid: str,
+                                         meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
+                                         db_root: str,
+                                         parallel_meta: bool = False,
+                                         num_workers: Optional[int] = None,
+                                         num_meta_repetitions: int = 1,
+                                         alternative_order: bool = False) -&gt; None:
+        &#34;&#34;&#34;Construct by loading data from a previously run comparison of the base
+        optimizers for this experiment.
+
+        Parameters
+        ----------
+        dbid : str
+            The DBID for the saved data to be loaded.
+        meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+            Dictionary whose values are the instantiated meta-optimizers to include
+            in this comparison (these will choose combinations of the base optimizers
+            defined below) and whose keys are the names used to refer to them.
+        db_root : str
+            Path to root folder in which a folder for this experiment&#39;s data will
+            be created.
+        parallel_meta : bool, optional
+            Whether to run the meta experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        num_workers : Optional[int], optional
+            Number of worker processes to use if parallelisation is enabled. If not
+            specified defaults to the number of cpu cores.
+        num_meta_repetitions : int, optional
+            Number of times to re-run the meta-optimizers on each base optimizer
+            study; averaging over meta-optimizer randomness. Defaults to 1.
+        alternative_order : bool, optional
+            ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+            to interleave MLP with lasso, instead of all MLP then all lasso.
+        &#34;&#34;&#34;
+        data = BaseOptimizerComparison.get_results_for_dbid(dbid, db_root)
+        num_repetitions = len(data.index.unique(level=&#34;study_id&#34;).to_list())
+        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta,
+                       num_workers, num_meta_repetitions, alternative_order)
+        instance._dbid = dbid
+        instance._base_comparison_data = data
+        instance._calculate_order()
+        return instance
+
+    def run_base_comparison(self) -&gt; None:
+        &#34;&#34;&#34;Run the base optimizers on the relevant tasks for this experiment.
+
+        May take a while.
+        &#34;&#34;&#34;
+        assert self._base_comparison_info_ready, &#34;Must construct using `from_base_comparison_setup`.&#34;
+
+        base_comparison = BaseOptimizerComparison(
+            self.base_optimizers,
+            self.classifiers,
+            self.datasets,
+            self.metrics,
+            self.num_calls,
+            self.num_repetitions,
+            self.db_root,
+            self.datasets_root,
+            self.parallel_base,
+            self.num_workers)
+        base_comparison.run()
+        self._dbid = base_comparison.get_dbid()
+        self._base_comparison_data = base_comparison.get_results()
+        self._calculate_order()
+
+    def run_meta_comparison(self):
+        &#34;&#34;&#34;Run the comparison of meta-optimizers over the base optimizers.
+
+        Must have first run or loaded the base optimizer comparison.
+        &#34;&#34;&#34;
+        assert self._dbid is not None, &#34;Must run or load base comparison first.&#34;
+        results = [self._single_meta_run(i) for i in range(self.num_meta_repetitions)]
+        self.meta_results = pd.concat(results, keys=range(len(results)), names=[&#34;meta_rep&#34;])
+        
+        self._meta_comparison_completed = True
+
+    def full_results(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get mean and std (over meta-repetitions) of the individual meta-optimizer
+        performances (for each problem separately).
+        
+        Must have run the meta-comparison first. Averages are taken over base study
+        repetitions first.
+        
+        Returns
+        -------
+        Tuple[pd.DataFrame, pd.DataFrame]
+            The first dataframe contains the mean validation and test scores, the second
+            the standard deviations.
+        &#34;&#34;&#34;
+        assert self._meta_comparison_completed == True, \
+             &#34;Must complete comparison before getting results&#34;
+        
+        # Avg over base studies
+        samples = self.meta_results.drop(columns=&#34;arms&#34;).groupby([&#34;optimizer&#34;, &#34;function&#34;, &#34;meta_rep&#34;]).mean() \
+            [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+        
+        # Stats over meta repetitions
+        mean = samples.groupby([&#34;optimizer&#34;, &#34;function&#34;]).mean()
+        std = samples.groupby([&#34;optimizer&#34;, &#34;function&#34;]).std()
+        
+        # Get base result means to add
+        base_results = self._base_comparison_data.xs(&#34;score&#34;, level=1, axis=1) \
+                                        .rename(columns=lambda x: x+&#34;_score&#34;) \
+                                        .groupby([&#34;optimizer&#34;, &#34;function&#34;]).mean() \
+                                        [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+        mean = pd.concat([base_results, mean])
+        
+        return mean, std
+
+    def summary(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get mean and std (over meta-repetitions) of the average meta-optimizer
+        scores (over all problems).
+        
+        Must have run the meta-comparison first. Averages are taken over base study
+        repetitions first.
+        
+        Returns
+        -------
+        Tuple[pd.DataFrame, pd.DataFrame]
+            The first dataframe contains the mean validation and test scores, the second
+            the standard deviations.
+        &#34;&#34;&#34;
+        
+        # Avg over base studies and problems
+        samples = self.meta_results.drop(columns=&#34;arms&#34;).groupby([&#34;optimizer&#34;, &#34;meta_rep&#34;]).mean() \
+            [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+        
+        # Stats over meta repetitions
+        mean = samples.groupby([&#34;optimizer&#34;]).mean()
+        std = samples.groupby([&#34;optimizer&#34;]).std()
+        
+        # Get base result means to add
+        base_results = self._base_comparison_data.xs(&#34;score&#34;, level=1, axis=1) \
+                                        .rename(columns=lambda x: x+&#34;_score&#34;) \
+                                        .groupby([&#34;optimizer&#34;]).mean() \
+                                        [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+        mean = pd.concat([base_results, mean])
+        
+        return mean, std
+
+    def get_dbid(self):
+        &#34;&#34;&#34;Get the unique DBID associated with the base optimizer comparison
+        for this experiment.
+
+        Must run or load base comparison first.
+
+        Returns
+        -------
+        int
+            The DBID of this base comparison for this experiment.
+        &#34;&#34;&#34;
+        assert self._dbid is not None, &#34;Must run or load base comparison first.&#34;
+        return self._dbid
+
+    def _single_meta_run(self, i) -&gt; pd.DataFrame:
+        to_print = f&#34;Starting meta-comparison, repetition {i+1} of {self.num_meta_repetitions}&#34;
+        print(to_print)
+        print(&#34;-&#34;*len(to_print))
+        start = time.time()
+        
+        global lock
+        lock = Lock()
+        if self.parallel_meta:
+            with Pool(self.num_workers) as pool:
+                results = pool.map(self._process_meta_optimizer,
+                                   self.meta_optimizers, chunksize=1)
+        else:
+            results = map(self._process_meta_optimizer,
+                          self.meta_optimizers)
+        
+        results = list(map(list, zip(*results))) # Transpose
+        results = [pd.concat(dfs, keys=self.meta_optimizers.keys()) for dfs in results]
+
+        results = pd.concat(results, keys=list(range(self.num_repetitions)))
+        results.index.rename([&#34;study_id&#34;, &#34;optimizer&#34;, &#34;function&#34;], inplace=True)
+        results = results.reorder_levels([&#34;optimizer&#34;, &#34;function&#34;, &#34;study_id&#34;])
+        results = results.sort_values(results.index.names)
+        
+        end = time.time()
+        elapsed = end - start
+        print(f&#34;Finished meta-comparison in {elapsed} seconds&#34;)
+        return results
+
+    def _process_meta_optimizer(self, name):
+        np.random.seed()
+        meta_optimizer = self.meta_optimizers[name]
+        results = []
+        for rep in range(self.num_repetitions):
+            with lock:
+                print(f&#34;Running meta-optimizer {name} on base &#34; \
+                      f&#34;study {rep+1} of {self.num_repetitions}&#34;)
+            comp_data = self._base_comparison_data.xs(rep, level=&#34;study_id&#34;)
+            meta_optimizer.run(comp_data, function_order=self._order)
+            res = meta_optimizer.get_results()
+            res[&#34;arms&#34;] = meta_optimizer.get_history()[&#34;arms&#34;]
+            results.append(res)
+        return results
+
+    def _calculate_order(self):
+        assert self._dbid is not None
+        if self.alternative_order:
+            functions = self._base_comparison_data.index.unique(&#34;function&#34;).to_list()
+            mlp = list(filter(lambda x: x.startswith(&#34;MLP&#34;), functions))
+            lasso = list(filter(lambda x: x.startswith(&#34;lasso&#34;), functions))
+            order = utils.interleave_lists(mlp, lasso)
+            self._order = order
+
+
+class SyntheticComparison:
+    &#34;&#34;&#34;Class implementing comparison of algorithms on synthetic rewards.
+
+    Parameters
+    ----------
+    environment : synthetic.AbstractEnvironment
+        An environment specification to generate synthetic rewards.
+    algos : Dict[str, synthetic.AbstractAlgorithm]
+        A dict of named algorithms to run on the generated synthetic rewards.
+    parallel: bool, optional
+        Whether to use multiple processes for evaluation. Defaults to False.
+    num_workers : int, optional
+        How many worker processes to use, if `parallel` is True. If not specified,
+        defaults to the number of available cores.
+    num_repetitions : int, optional
+        How many times to repeat the evaluation for reliability. Repetitions are
+        over randomness in algorithms and in the environment. Defaults to 1.
+
+    Attributes
+    ----------
+    Same as parameters.
+    &#34;&#34;&#34;
+
+    def __init__(self,
+                 environment: synthetic.AbstractEnvironment,
+                 algos: Dict[str, synthetic.AbstractAlgorithm],
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None,
+                 num_repetitions: int = 1):
+        self.environment = environment
+        self.algos = algos
+        self.parallel = parallel
+        self.num_workers = num_workers
+        self.num_repetitions = num_repetitions
+        self._has_run = False
+
+    def run(self) -&gt; None:
+        &#34;&#34;&#34;Run the comparison of algorithms.
+        &#34;&#34;&#34;
+        results = [self._single_run(rep) for rep in range(self.num_repetitions)]
+        self.results = pd.concat(results,
+                                 keys=range(len(results)),
+                                 names=[&#34;rep&#34;])
+        self._has_run = True
+
+    def full_results(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get mean and std (over trials) of individual algorithm
+        performances on each round separately.
+        
+        Must have run the comparison first.
+        
+        Returns
+        -------
+        pd.DataFrame
+        &#34;&#34;&#34;
+        assert self._has_run, &#34;Must run first.&#34;
+        samples = self.results.loc[:,&#34;score&#34;] # Series
+
+        mean = samples.groupby([&#34;algo&#34;, &#34;round&#34;]).mean()
+        std = samples.groupby([&#34;algo&#34;, &#34;round&#34;]).std()
+        return pd.DataFrame({&#34;mean&#34;: mean, &#34;std&#34;: std})
+
+    def summary(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get mean and std (over trials) of average algorithm
+        scores (over all rounds).
+        
+        Must have run the comparison first.
+        
+        Returns
+        -------
+        pd.DataFrame
+        &#34;&#34;&#34;
+        assert self._has_run, &#34;Must run first.&#34;
+        samples = self.results.loc[:,&#34;score&#34;].groupby([&#34;algo&#34;,&#34;rep&#34;]).mean()
+
+        mean = samples.groupby(&#34;algo&#34;).mean()
+        std = samples.groupby(&#34;algo&#34;).std()
+        return pd.DataFrame({&#34;mean&#34;: mean, &#34;std&#34;: std})
+
+    def _single_run(self, rep):
+        to_print = f&#34;Starting trial {rep+1} of {self.num_repetitions}&#34;
+        print(to_print)
+        print(&#34;-&#34;*len(to_print))
+        start = time.time()
+
+        self._rewards = self.environment.generate_rewards()
+
+        global lock
+        lock = Lock()
+        if self.parallel:
+            with Pool(self.num_workers) as pool:
+                results = pool.map(self._process_algo, self.algos, chunksize=1)
+        else:
+            results = map(self._process_algo, self.algos)
+
+        results = pd.concat(results, keys=self.algos.keys(), names=[&#34;algo&#34;])
+
+        end = time.time()
+        elapsed = end - start
+        print(f&#34;Finished trial in {elapsed} seconds&#34;)
+        return results
+
+    def _process_algo(self, name):
+        np.random.seed()
+        with lock:
+            print(f&#34;Running algorithm {name}&#34;)
+        algo = self.algos[name]
+        algo.run(self._rewards)
+        scores = algo.get_results()
+        history = list(map(lambda x: &#34;,&#34;.join(map(str,x)), algo.get_history()))
+        df = pd.DataFrame({&#34;score&#34;: scores, &#34;choice&#34;: history},
+                            index=self._rewards.index)
+        df.index.name = &#34;round&#34;
+        return df</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="blackboxbandits.compare.BaseOptimizerComparison"><code class="flex name class">
+<span>class <span class="ident">BaseOptimizerComparison</span></span>
+<span>(</span><span>optimizers: List[str], classifiers: List[str], datasets: List[str], metrics: List[str], num_calls: int, num_repetitions: int, db_root: str, datasets_root: Optional[str] = None, parallel: bool = False, num_workers: Optional[int] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Interface for comparing standard black-box optimizers on ML tasks.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>optimizers</code></strong> :&ensp;<code>List[str]</code></dt>
+<dd>List of standard optimizer names known to Bayesmark.</dd>
+<dt><strong><code>classifiers</code></strong> :&ensp;<code>List[str]</code></dt>
+<dd>List of sklearn classification methods known to Bayesmark.</dd>
+<dt><strong><code>datasets</code></strong> :&ensp;<code>List[str]</code></dt>
+<dd>List of classification/regression datasets known to Bayesmark.</dd>
+<dt><strong><code>metrics</code></strong> :&ensp;<code>List[str]</code></dt>
+<dd>List of loss functions known to Bayesmark. Must include at least one
+regression and one classification loss function if <code>datasets</code> includes
+both types of task.</dd>
+<dt><strong><code>num_calls</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of function evaluations allowed by each optimizer on each task.</dd>
+<dt><strong><code>num_repetitions</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of times to repeat the entire experiment for reliability.</dd>
+<dt><strong><code>db_root</code></strong> :&ensp;<code>str</code></dt>
+<dd>Path to root folder in which a folder for this experiment's data will
+be created.</dd>
+<dt><strong><code>datasets_root</code></strong> :&ensp;<code>Optional[str]</code>, optional</dt>
+<dd>Path to directory containing csv files for referenced datasets. Defaults
+to None.</dd>
+<dt><strong><code>parallel</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to run the experiments as a pool of tasks across multiple worker
+threads or not. Defaults to False.</dd>
+<dt><strong><code>num_workers</code></strong> :&ensp;<code>Optional[int]</code>, optional</dt>
+<dd>Number of worker processes to use if parallelisation is enabled. If not
+specified defaults to the number of cpu cores.</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<p>Same as parameters.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class BaseOptimizerComparison:
+    &#34;&#34;&#34;Interface for comparing standard black-box optimizers on ML tasks.
+
+    Parameters
+    ----------
+    optimizers : List[str]
+        List of standard optimizer names known to Bayesmark.
+    classifiers : List[str]
+        List of sklearn classification methods known to Bayesmark.
+    datasets : List[str]
+        List of classification/regression datasets known to Bayesmark.
+    metrics : List[str]
+        List of loss functions known to Bayesmark. Must include at least one
+        regression and one classification loss function if `datasets` includes
+        both types of task.
+    num_calls : int
+        Number of function evaluations allowed by each optimizer on each task.
+    num_repetitions : int
+        Number of times to repeat the entire experiment for reliability.
+    db_root : str
+        Path to root folder in which a folder for this experiment&#39;s data will
+        be created.
+    datasets_root : Optional[str], optional
+        Path to directory containing csv files for referenced datasets. Defaults
+        to None.
+    parallel : bool, optional
+        Whether to run the experiments as a pool of tasks across multiple worker
+        threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
+
+    Attributes
+    ----------
+    Same as parameters.
+    &#34;&#34;&#34;
+
+    def __init__(self,
+                 optimizers: List[str],
+                 classifiers: List[str],
+                 datasets: List[str],
+                 metrics: List[str],
+                 num_calls: int,
+                 num_repetitions: int,
+                 db_root: str,
+                 datasets_root: Optional[str] = None,
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None):
+        
+        self.optimizers = optimizers
+        self.classifiers = classifiers
+        self.datasets = datasets
+        self.metrics = metrics
+        self.num_calls = num_calls
+        self.num_repetitions = num_repetitions
+        self.db_root = db_root
+        self.datasets_root = datasets_root
+        self.parallel = parallel
+        self.num_workers = num_workers
+        self._dbid: Optional[str] = None
+
+    def run(self) -&gt; None:
+        &#34;&#34;&#34;Run the comparison experiment defined by this class.
+
+        May take a while, depending on whether parallelisation is enabled.
+
+        Notes
+        -----
+
+        If parallelisation is enabled, this generates and uses a temporary
+        file `jobs.txt` in the current directory.
+        &#34;&#34;&#34;
+        launcher_args = {
+            &#34;-dir&#34;: self.db_root,
+            &#34;-o&#34;: &#34; &#34;.join(self.optimizers),
+            &#34;-d&#34;: &#34; &#34;.join(self.datasets),
+            &#34;-c&#34;: &#34; &#34;.join(self.classifiers),
+            &#34;-m&#34;: &#34; &#34;.join(self.metrics),
+            &#34;-n&#34;: str(self.num_calls),
+            &#34;-r&#34;: str(self.num_repetitions)
+        }
+        if self.datasets_root is not None:
+            launcher_args[&#34;-dr&#34;] = self.datasets_root
+        if self.parallel: # Will create list of independent commands to run
+            # Approximate number of indep. experiments in this comparison
+            launcher_args[&#34;-nj&#34;] = str(len(self.optimizers) * len(self.datasets) \
+                                 * len(self.classifiers) * self.num_repetitions)
+
+            # Generate dbid for whole batch
+            folder_prefix = datetime.utcnow().strftime(&#34;bo_%Y%m%d_%H%M%S_&#34;)
+            exp_subdir = mkdtemp(prefix=folder_prefix, dir=self.db_root)
+            self._dbid = os.path.basename(exp_subdir)
+            launcher_args[&#34;-b&#34;] = self._dbid
+
+            # Setup dbid folder
+            for name in [&#34;derived&#34;, &#34;log&#34;, &#34;eval&#34;, &#34;time&#34;, &#34;suggest_log&#34;]:
+                os.mkdir(os.path.join(exp_subdir, name))
+
+        # Run Bayesmark experiment launcher
+        launcher_command = &#34;bayesmark-launch &#34; + &#34; &#34;.join(
+            [key + &#34; &#34; + value for key, value in launcher_args.items()]
+        )
+        launcher_command += &#34; -v&#34;
+        p = subprocess.Popen(launcher_command,
+                             stderr=subprocess.PIPE, shell=True)
+        while p.poll() is None:
+            l = p.stderr.readline().decode(&#34;utf-8&#34;)
+            print(l)
+            if &#34;Supply --db&#34; in l:
+                dbid_string = l
+
+        # If parallel we now need to run the generated commands
+        if self.parallel:
+            self._run_parallel_commands(self._dbid)
+        else:
+            # Get DBID
+            dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
+                                + len(&#34;Supply --db&#34;) + 1
+            dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
+            assert dbid_start_index != -1 and dbid_end_index != -1
+            self._dbid = dbid_string[dbid_start_index:dbid_end_index]
+
+        # Aggregate results
+        os.system(f&#39;bayesmark-agg -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)
+
+        # Analyse results (will compute baselines which we&#39;ll use)
+        os.system(f&#39;bayesmark-anal -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)
+
+    def get_dbid(self) -&gt; int:
+        &#34;&#34;&#34;Get the unique DBID of this comparison.
+        
+        This is the name of the folder this comparison&#39;s data is saved in.
+        Must run comparison first.
+
+        Returns
+        -------
+        int
+            The DBID of this experiment.
+        &#34;&#34;&#34;
+        assert self._dbid is not None, &#34;Must run comparison first.&#34;
+        return self._dbid
+
+    def get_results(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get the results of this comparison as a dataframe.
+
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe containing the results of this comparison.
+        &#34;&#34;&#34;
+        return self.get_results_for_dbid(self._dbid, self.db_root)
+
+    def _run_parallel_commands(self, dbid: int) -&gt; None:
+        with open(&#34;./jobs.txt&#34;,&#34;r&#34;) as f:
+            jobs = f.readlines()[2:]
+        cmd_start_idx = jobs[0].find(&#34;bayesmark-exp&#34;)
+        job_commands = {job[:cmd_start_idx-1]: job[cmd_start_idx:].strip()
+                        for job in jobs}
+        
+        l = Lock() # We&#39;ll make `lock&#39; global among pooled processes
+        pool = Pool(self.num_workers, initializer=self._pool_init, initargs=(l,)) \
+               if self.num_workers is not None \
+               else Pool(initializer=self._pool_init, initargs=(l,))
+        print(f&#34;Starting processing {len(job_commands)} jobs.&#34;)
+        pool.map(self._process_individual_command, job_commands.items(), chunksize=1)
+        pool.close()
+        pool.join()
+        print(&#34;Finished processing all jobs.&#34;)
+
+    def _process_individual_command(self, job: Tuple[str, str]):
+        with lock:
+            print(&#34;Starting job&#34;, job[0], &#34;at&#34;, dt.datetime.now().isoformat())
+        try:
+            subprocess.run(job[1], shell=True)
+        except:
+            with lock:
+                print(f&#34;Job {job[0]} failed&#34;)
+        else:
+            with lock:
+                print(&#34;Finished job&#34;, job[0], &#34;at&#34;, dt.datetime.now().isoformat())
+            
+    def _pool_init(self, l):
+        global lock
+        lock = l
+
+    @classmethod
+    def get_results_for_dbid(cls, dbid: str, db_root: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get the results of a particular comparison specified by its DBID.
+
+        Parameters
+        ----------
+        dbid : str
+            The DBID of the comparison to get results for.
+        db_root : str
+            Path to the directory containing the folder for
+            the relevant comparison.
+        
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe containing the result of the specified comparison.
+        &#34;&#34;&#34;
+        # Read data saved by Bayesmark
+        abs_db_root = os.path.abspath(db_root)
+        saved_eval = XRSerializer.load_derived(db_root=abs_db_root,
+                                               db=dbid,
+                                               key=&#34;eval&#34;)
+        eval = saved_eval[0].to_dataframe()
+        saved_baseline = XRSerializer.load_derived(db_root=abs_db_root,
+                                                   db=dbid,
+                                                   key=&#34;baseline&#34;)
+        baseline = saved_baseline[0].to_dataframe()
+
+        # Massage into nice format
+        baseline = baseline[[&#34;mean&#34;,&#34;best&#34;]] \
+            .groupby(level=[&#34;objective&#34;,&#34;function&#34;]).min()
+        baseline = baseline.unstack(level=&#34;objective&#34;)
+        baseline.columns = [&#34;visible_baseline&#34;, &#34;generalization_baseline&#34;,
+                            &#34;visible_opt&#34;, &#34;generalization_opt&#34;]
+        eval = eval.droplevel(&#34;suggestion&#34;)
+        eval = eval.reorder_levels([&#34;optimizer&#34;, &#34;function&#34;,
+                                    &#34;study_id&#34;, &#34;iter&#34;])
+        eval = eval.sort_values(eval.index.names)
+        eval = eval.groupby(level=[&#34;optimizer&#34;,&#34;function&#34;,&#34;study_id&#34;]).min()
+        eval = eval.rename(columns={&#34;_visible_to_opt&#34;: &#34;visible&#34;})
+        eval = eval.rename(columns=lambda x: x + &#34;_achieved&#34;)
+        data = eval.join(baseline, on=&#34;function&#34;)
+
+        # Calculate normalized scores
+        data[&#34;generalization_score&#34;] = cls._constrain(
+            1 - (data[&#34;generalization_achieved&#34;] - data[&#34;generalization_opt&#34;]) \
+            / (data[&#34;generalization_baseline&#34;] - data[&#34;generalization_opt&#34;])
+        )
+        data[&#34;visible_score&#34;] = cls._constrain(
+            1 - (data[&#34;visible_achieved&#34;] - data[&#34;visible_opt&#34;]) \
+            / (data[&#34;visible_baseline&#34;] - data[&#34;visible_opt&#34;])
+        )
+
+        data = data.reindex(sorted(data.columns), axis=1)
+        data.columns = data.columns.str.split(&#34;_&#34;, expand=True)
+
+        return data.dropna() # TODO: may want to remove dropna
+
+    @staticmethod
+    def _constrain(series):
+        return np.maximum(np.minimum(series, 1), 0)</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="blackboxbandits.compare.BaseOptimizerComparison.get_results_for_dbid"><code class="name flex">
+<span>def <span class="ident">get_results_for_dbid</span></span>(<span>dbid: str, db_root: str) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get the results of a particular comparison specified by its DBID.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>dbid</code></strong> :&ensp;<code>str</code></dt>
+<dd>The DBID of the comparison to get results for.</dd>
+<dt><strong><code>db_root</code></strong> :&ensp;<code>str</code></dt>
+<dd>Path to the directory containing the folder for
+the relevant comparison.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>A dataframe containing the result of the specified comparison.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def get_results_for_dbid(cls, dbid: str, db_root: str) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Get the results of a particular comparison specified by its DBID.
+
+    Parameters
+    ----------
+    dbid : str
+        The DBID of the comparison to get results for.
+    db_root : str
+        Path to the directory containing the folder for
+        the relevant comparison.
+    
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing the result of the specified comparison.
+    &#34;&#34;&#34;
+    # Read data saved by Bayesmark
+    abs_db_root = os.path.abspath(db_root)
+    saved_eval = XRSerializer.load_derived(db_root=abs_db_root,
+                                           db=dbid,
+                                           key=&#34;eval&#34;)
+    eval = saved_eval[0].to_dataframe()
+    saved_baseline = XRSerializer.load_derived(db_root=abs_db_root,
+                                               db=dbid,
+                                               key=&#34;baseline&#34;)
+    baseline = saved_baseline[0].to_dataframe()
+
+    # Massage into nice format
+    baseline = baseline[[&#34;mean&#34;,&#34;best&#34;]] \
+        .groupby(level=[&#34;objective&#34;,&#34;function&#34;]).min()
+    baseline = baseline.unstack(level=&#34;objective&#34;)
+    baseline.columns = [&#34;visible_baseline&#34;, &#34;generalization_baseline&#34;,
+                        &#34;visible_opt&#34;, &#34;generalization_opt&#34;]
+    eval = eval.droplevel(&#34;suggestion&#34;)
+    eval = eval.reorder_levels([&#34;optimizer&#34;, &#34;function&#34;,
+                                &#34;study_id&#34;, &#34;iter&#34;])
+    eval = eval.sort_values(eval.index.names)
+    eval = eval.groupby(level=[&#34;optimizer&#34;,&#34;function&#34;,&#34;study_id&#34;]).min()
+    eval = eval.rename(columns={&#34;_visible_to_opt&#34;: &#34;visible&#34;})
+    eval = eval.rename(columns=lambda x: x + &#34;_achieved&#34;)
+    data = eval.join(baseline, on=&#34;function&#34;)
+
+    # Calculate normalized scores
+    data[&#34;generalization_score&#34;] = cls._constrain(
+        1 - (data[&#34;generalization_achieved&#34;] - data[&#34;generalization_opt&#34;]) \
+        / (data[&#34;generalization_baseline&#34;] - data[&#34;generalization_opt&#34;])
+    )
+    data[&#34;visible_score&#34;] = cls._constrain(
+        1 - (data[&#34;visible_achieved&#34;] - data[&#34;visible_opt&#34;]) \
+        / (data[&#34;visible_baseline&#34;] - data[&#34;visible_opt&#34;])
+    )
+
+    data = data.reindex(sorted(data.columns), axis=1)
+    data.columns = data.columns.str.split(&#34;_&#34;, expand=True)
+
+    return data.dropna() # TODO: may want to remove dropna</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="blackboxbandits.compare.BaseOptimizerComparison.get_dbid"><code class="name flex">
+<span>def <span class="ident">get_dbid</span></span>(<span>self) ‑> int</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get the unique DBID of this comparison.</p>
+<p>This is the name of the folder this comparison's data is saved in.
+Must run comparison first.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>int</code></dt>
+<dd>The DBID of this experiment.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_dbid(self) -&gt; int:
+    &#34;&#34;&#34;Get the unique DBID of this comparison.
+    
+    This is the name of the folder this comparison&#39;s data is saved in.
+    Must run comparison first.
+
+    Returns
+    -------
+    int
+        The DBID of this experiment.
+    &#34;&#34;&#34;
+    assert self._dbid is not None, &#34;Must run comparison first.&#34;
+    return self._dbid</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.BaseOptimizerComparison.get_results"><code class="name flex">
+<span>def <span class="ident">get_results</span></span>(<span>self) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get the results of this comparison as a dataframe.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>A dataframe containing the results of this comparison.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_results(self) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Get the results of this comparison as a dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing the results of this comparison.
+    &#34;&#34;&#34;
+    return self.get_results_for_dbid(self._dbid, self.db_root)</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.BaseOptimizerComparison.run"><code class="name flex">
+<span>def <span class="ident">run</span></span>(<span>self) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run the comparison experiment defined by this class.</p>
+<p>May take a while, depending on whether parallelisation is enabled.</p>
+<h2 id="notes">Notes</h2>
+<p>If parallelisation is enabled, this generates and uses a temporary
+file <code>jobs.txt</code> in the current directory.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run(self) -&gt; None:
+    &#34;&#34;&#34;Run the comparison experiment defined by this class.
+
+    May take a while, depending on whether parallelisation is enabled.
+
+    Notes
+    -----
+
+    If parallelisation is enabled, this generates and uses a temporary
+    file `jobs.txt` in the current directory.
+    &#34;&#34;&#34;
+    launcher_args = {
+        &#34;-dir&#34;: self.db_root,
+        &#34;-o&#34;: &#34; &#34;.join(self.optimizers),
+        &#34;-d&#34;: &#34; &#34;.join(self.datasets),
+        &#34;-c&#34;: &#34; &#34;.join(self.classifiers),
+        &#34;-m&#34;: &#34; &#34;.join(self.metrics),
+        &#34;-n&#34;: str(self.num_calls),
+        &#34;-r&#34;: str(self.num_repetitions)
+    }
+    if self.datasets_root is not None:
+        launcher_args[&#34;-dr&#34;] = self.datasets_root
+    if self.parallel: # Will create list of independent commands to run
+        # Approximate number of indep. experiments in this comparison
+        launcher_args[&#34;-nj&#34;] = str(len(self.optimizers) * len(self.datasets) \
+                             * len(self.classifiers) * self.num_repetitions)
+
+        # Generate dbid for whole batch
+        folder_prefix = datetime.utcnow().strftime(&#34;bo_%Y%m%d_%H%M%S_&#34;)
+        exp_subdir = mkdtemp(prefix=folder_prefix, dir=self.db_root)
+        self._dbid = os.path.basename(exp_subdir)
+        launcher_args[&#34;-b&#34;] = self._dbid
+
+        # Setup dbid folder
+        for name in [&#34;derived&#34;, &#34;log&#34;, &#34;eval&#34;, &#34;time&#34;, &#34;suggest_log&#34;]:
+            os.mkdir(os.path.join(exp_subdir, name))
+
+    # Run Bayesmark experiment launcher
+    launcher_command = &#34;bayesmark-launch &#34; + &#34; &#34;.join(
+        [key + &#34; &#34; + value for key, value in launcher_args.items()]
+    )
+    launcher_command += &#34; -v&#34;
+    p = subprocess.Popen(launcher_command,
+                         stderr=subprocess.PIPE, shell=True)
+    while p.poll() is None:
+        l = p.stderr.readline().decode(&#34;utf-8&#34;)
+        print(l)
+        if &#34;Supply --db&#34; in l:
+            dbid_string = l
+
+    # If parallel we now need to run the generated commands
+    if self.parallel:
+        self._run_parallel_commands(self._dbid)
+    else:
+        # Get DBID
+        dbid_start_index = dbid_string.find(&#34;Supply --db&#34;) \
+                            + len(&#34;Supply --db&#34;) + 1
+        dbid_end_index = dbid_string.find(&#34;to append to this experiment&#34;) - 1
+        assert dbid_start_index != -1 and dbid_end_index != -1
+        self._dbid = dbid_string[dbid_start_index:dbid_end_index]
+
+    # Aggregate results
+    os.system(f&#39;bayesmark-agg -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)
+
+    # Analyse results (will compute baselines which we&#39;ll use)
+    os.system(f&#39;bayesmark-anal -dir &#34;{self.db_root}&#34; -b &#34;{self._dbid}&#34;&#39;)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="blackboxbandits.compare.MetaOptimizerComparison"><code class="flex name class">
+<span>class <span class="ident">MetaOptimizerComparison</span></span>
+<span>(</span><span>meta_optimizers: Dict[str, <a title="blackboxbandits.meta.AbstractMetaOptimizer" href="meta.html#blackboxbandits.meta.AbstractMetaOptimizer">AbstractMetaOptimizer</a>], num_repetitions: int, db_root: str, parallel_meta: bool = False, num_workers: Optional[int] = None, num_meta_repetitions: int = 1, alternative_order: bool = False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Interface for comparing <em>combinations</em> of standard black-box
+optimizers on ML tasks.</p>
+<p>Do not use the default constructor, use <code>from_base_comparison_setup</code> or
+<code>from_precomputed_base_comparison</code>.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>meta_optimizers</code></strong> :&ensp;<code>Dict[str, meta.AbstractMetaOptimizer]</code></dt>
+<dd>Dictionary whose values are the instantiated meta-optimizers to include
+in this comparison (these will choose combinations of the base optimizers
+defined below) and whose keys are the names used to refer to them.</dd>
+<dt><strong><code>num_repetitions</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of times to repeat the entire base experiment for reliability.</dd>
+<dt><strong><code>db_root</code></strong> :&ensp;<code>str</code></dt>
+<dd>Path to root folder in which a folder for this experiment's data will
+be created.</dd>
+<dt><strong><code>parallel_meta</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to run the meta experiments as a pool of tasks across multiple
+worker threads or not. Defaults to False.</dd>
+<dt><strong><code>num_workers</code></strong> :&ensp;<code>Optional[int]</code>, optional</dt>
+<dd>Number of worker processes to use if parallelisation is enabled. If not
+specified defaults to the number of cpu cores.</dd>
+<dt><strong><code>num_meta_repetitions</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Number of times to re-run the meta-optimizers on each base optimizer
+study; averaging over meta-optimizer randomness. Defaults to 1.</dd>
+<dt><strong><code>alternative_order</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+to interleave MLP with lasso, instead of all MLP then all lasso.</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<p>Same as parameters of whichever constructor used.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class MetaOptimizerComparison:
+    &#34;&#34;&#34;Interface for comparing *combinations* of standard black-box
+    optimizers on ML tasks.
+
+    Do not use the default constructor, use `from_base_comparison_setup` or
+    `from_precomputed_base_comparison`.
+
+    Parameters
+    ----------
+    meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+        Dictionary whose values are the instantiated meta-optimizers to include
+        in this comparison (these will choose combinations of the base optimizers
+        defined below) and whose keys are the names used to refer to them.
+    num_repetitions : int
+        Number of times to repeat the entire base experiment for reliability.
+    db_root : str
+        Path to root folder in which a folder for this experiment&#39;s data will
+        be created.
+    parallel_meta : bool, optional
+        Whether to run the meta experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
+    num_meta_repetitions : int, optional
+        Number of times to re-run the meta-optimizers on each base optimizer
+        study; averaging over meta-optimizer randomness. Defaults to 1.
+    alternative_order : bool, optional
+        ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+        to interleave MLP with lasso, instead of all MLP then all lasso.
+
+    Attributes
+    ----------
+    Same as parameters of whichever constructor used.
+    &#34;&#34;&#34;
+
+    def __init__(self,
+                 meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
+                 num_repetitions: int,
+                 db_root: str,
+                 parallel_meta: bool = False,
+                 num_workers: Optional[int] = None,
+                 num_meta_repetitions: int = 1,
+                 alternative_order: bool = False):
+        self.meta_optimizers = meta_optimizers
+        self.num_repetitions = num_repetitions
+        self.db_root = db_root
+        self.parallel_meta = parallel_meta
+        self.num_workers = num_workers
+        self.num_meta_repetitions = num_meta_repetitions
+        self.alternative_order = alternative_order
+        
+        self._meta_comparison_completed = False
+        self._dbid: Optional[str] = None
+        self._base_comparison_info_ready = False
+        self._order = None
+
+    @classmethod
+    def from_base_comparison_setup(cls,
+                                   meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
+                                   base_optimizers: List[str],
+                                   classifiers: List[str],
+                                   datasets: List[str],
+                                   metrics: List[str],
+                                   num_calls: int,
+                                   num_repetitions: int,
+                                   db_root: str,
+                                   datasets_root: Optional[str] = None,
+                                   parallel_base: bool = False,
+                                   parallel_meta: bool = False,
+                                   num_workers: Optional[int] = None,
+                                   num_meta_repetitions: int = 1,
+                                   alternative_order: bool = False):
+        &#34;&#34;&#34;Construct from base comparison setup info.
+        
+        Parameters
+        ----------
+        meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+            Dictionary whose values are the instantiated meta-optimizers to include
+            in this comparison (these will choose combinations of the base optimizers
+            defined below) and whose keys are the names used to refer to them.
+        base_optimizers : List[str]
+            List of standard optimizer names known to Bayesmark to be used as the
+            base optimizers for this comparison.
+        classifiers : List[str]
+            List of sklearn classification methods known to Bayesmark.
+        datasets : List[str]
+            List of classification/regression datasets known to Bayesmark.
+        metrics : List[str]
+            List of loss functions known to Bayesmark. Must include at least one
+            regression and one classification loss function if `datasets` includes
+            both types of task.
+        num_calls : int
+            Number of function evaluations allowed by each optimizer on each task.
+        num_repetitions : int
+            Number of times to repeat the entire experiment for reliability.
+        db_root : str
+            Path to root folder in which a folder for this experiment&#39;s data will
+            be created.
+        datasets_root : Optional[str], optional
+            Path to directory containing csv files for referenced datasets. Defaults
+            to None.
+        parallel_base : bool, optional
+            Whether to run the base experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        parallel_meta : bool, optional
+            Whether to run the meta experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        num_workers : Optional[int], optional
+            Number of worker processes to use if parallelisation is enabled. If not
+            specified defaults to the number of cpu cores.
+        num_meta_repetitions : int, optional
+            Number of times to re-run the meta-optimizers on each base optimizer
+            study; averaging over meta-optimizer randomness. Defaults to 1.
+        alternative_order : bool, optional
+            ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+            to interleave MLP with lasso, instead of all MLP then all lasso.
+        &#34;&#34;&#34;
+
+        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta,
+                       num_workers, num_meta_repetitions, alternative_order)
+
+        instance.base_optimizers = base_optimizers
+        instance.classifiers = classifiers
+        instance.datasets = datasets
+        instance.metrics = metrics
+        instance.num_calls = num_calls
+        instance.datasets_root = datasets_root
+        instance.parallel_base = parallel_base
+
+        instance._base_comparison_info_ready = True
+
+    @classmethod
+    def from_precomputed_base_comparison(cls,
+                                         dbid: str,
+                                         meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
+                                         db_root: str,
+                                         parallel_meta: bool = False,
+                                         num_workers: Optional[int] = None,
+                                         num_meta_repetitions: int = 1,
+                                         alternative_order: bool = False) -&gt; None:
+        &#34;&#34;&#34;Construct by loading data from a previously run comparison of the base
+        optimizers for this experiment.
+
+        Parameters
+        ----------
+        dbid : str
+            The DBID for the saved data to be loaded.
+        meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+            Dictionary whose values are the instantiated meta-optimizers to include
+            in this comparison (these will choose combinations of the base optimizers
+            defined below) and whose keys are the names used to refer to them.
+        db_root : str
+            Path to root folder in which a folder for this experiment&#39;s data will
+            be created.
+        parallel_meta : bool, optional
+            Whether to run the meta experiments as a pool of tasks across multiple
+            worker threads or not. Defaults to False.
+        num_workers : Optional[int], optional
+            Number of worker processes to use if parallelisation is enabled. If not
+            specified defaults to the number of cpu cores.
+        num_meta_repetitions : int, optional
+            Number of times to re-run the meta-optimizers on each base optimizer
+            study; averaging over meta-optimizer randomness. Defaults to 1.
+        alternative_order : bool, optional
+            ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+            to interleave MLP with lasso, instead of all MLP then all lasso.
+        &#34;&#34;&#34;
+        data = BaseOptimizerComparison.get_results_for_dbid(dbid, db_root)
+        num_repetitions = len(data.index.unique(level=&#34;study_id&#34;).to_list())
+        instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta,
+                       num_workers, num_meta_repetitions, alternative_order)
+        instance._dbid = dbid
+        instance._base_comparison_data = data
+        instance._calculate_order()
+        return instance
+
+    def run_base_comparison(self) -&gt; None:
+        &#34;&#34;&#34;Run the base optimizers on the relevant tasks for this experiment.
+
+        May take a while.
+        &#34;&#34;&#34;
+        assert self._base_comparison_info_ready, &#34;Must construct using `from_base_comparison_setup`.&#34;
+
+        base_comparison = BaseOptimizerComparison(
+            self.base_optimizers,
+            self.classifiers,
+            self.datasets,
+            self.metrics,
+            self.num_calls,
+            self.num_repetitions,
+            self.db_root,
+            self.datasets_root,
+            self.parallel_base,
+            self.num_workers)
+        base_comparison.run()
+        self._dbid = base_comparison.get_dbid()
+        self._base_comparison_data = base_comparison.get_results()
+        self._calculate_order()
+
+    def run_meta_comparison(self):
+        &#34;&#34;&#34;Run the comparison of meta-optimizers over the base optimizers.
+
+        Must have first run or loaded the base optimizer comparison.
+        &#34;&#34;&#34;
+        assert self._dbid is not None, &#34;Must run or load base comparison first.&#34;
+        results = [self._single_meta_run(i) for i in range(self.num_meta_repetitions)]
+        self.meta_results = pd.concat(results, keys=range(len(results)), names=[&#34;meta_rep&#34;])
+        
+        self._meta_comparison_completed = True
+
+    def full_results(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get mean and std (over meta-repetitions) of the individual meta-optimizer
+        performances (for each problem separately).
+        
+        Must have run the meta-comparison first. Averages are taken over base study
+        repetitions first.
+        
+        Returns
+        -------
+        Tuple[pd.DataFrame, pd.DataFrame]
+            The first dataframe contains the mean validation and test scores, the second
+            the standard deviations.
+        &#34;&#34;&#34;
+        assert self._meta_comparison_completed == True, \
+             &#34;Must complete comparison before getting results&#34;
+        
+        # Avg over base studies
+        samples = self.meta_results.drop(columns=&#34;arms&#34;).groupby([&#34;optimizer&#34;, &#34;function&#34;, &#34;meta_rep&#34;]).mean() \
+            [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+        
+        # Stats over meta repetitions
+        mean = samples.groupby([&#34;optimizer&#34;, &#34;function&#34;]).mean()
+        std = samples.groupby([&#34;optimizer&#34;, &#34;function&#34;]).std()
+        
+        # Get base result means to add
+        base_results = self._base_comparison_data.xs(&#34;score&#34;, level=1, axis=1) \
+                                        .rename(columns=lambda x: x+&#34;_score&#34;) \
+                                        .groupby([&#34;optimizer&#34;, &#34;function&#34;]).mean() \
+                                        [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+        mean = pd.concat([base_results, mean])
+        
+        return mean, std
+
+    def summary(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get mean and std (over meta-repetitions) of the average meta-optimizer
+        scores (over all problems).
+        
+        Must have run the meta-comparison first. Averages are taken over base study
+        repetitions first.
+        
+        Returns
+        -------
+        Tuple[pd.DataFrame, pd.DataFrame]
+            The first dataframe contains the mean validation and test scores, the second
+            the standard deviations.
+        &#34;&#34;&#34;
+        
+        # Avg over base studies and problems
+        samples = self.meta_results.drop(columns=&#34;arms&#34;).groupby([&#34;optimizer&#34;, &#34;meta_rep&#34;]).mean() \
+            [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+        
+        # Stats over meta repetitions
+        mean = samples.groupby([&#34;optimizer&#34;]).mean()
+        std = samples.groupby([&#34;optimizer&#34;]).std()
+        
+        # Get base result means to add
+        base_results = self._base_comparison_data.xs(&#34;score&#34;, level=1, axis=1) \
+                                        .rename(columns=lambda x: x+&#34;_score&#34;) \
+                                        .groupby([&#34;optimizer&#34;]).mean() \
+                                        [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+        mean = pd.concat([base_results, mean])
+        
+        return mean, std
+
+    def get_dbid(self):
+        &#34;&#34;&#34;Get the unique DBID associated with the base optimizer comparison
+        for this experiment.
+
+        Must run or load base comparison first.
+
+        Returns
+        -------
+        int
+            The DBID of this base comparison for this experiment.
+        &#34;&#34;&#34;
+        assert self._dbid is not None, &#34;Must run or load base comparison first.&#34;
+        return self._dbid
+
+    def _single_meta_run(self, i) -&gt; pd.DataFrame:
+        to_print = f&#34;Starting meta-comparison, repetition {i+1} of {self.num_meta_repetitions}&#34;
+        print(to_print)
+        print(&#34;-&#34;*len(to_print))
+        start = time.time()
+        
+        global lock
+        lock = Lock()
+        if self.parallel_meta:
+            with Pool(self.num_workers) as pool:
+                results = pool.map(self._process_meta_optimizer,
+                                   self.meta_optimizers, chunksize=1)
+        else:
+            results = map(self._process_meta_optimizer,
+                          self.meta_optimizers)
+        
+        results = list(map(list, zip(*results))) # Transpose
+        results = [pd.concat(dfs, keys=self.meta_optimizers.keys()) for dfs in results]
+
+        results = pd.concat(results, keys=list(range(self.num_repetitions)))
+        results.index.rename([&#34;study_id&#34;, &#34;optimizer&#34;, &#34;function&#34;], inplace=True)
+        results = results.reorder_levels([&#34;optimizer&#34;, &#34;function&#34;, &#34;study_id&#34;])
+        results = results.sort_values(results.index.names)
+        
+        end = time.time()
+        elapsed = end - start
+        print(f&#34;Finished meta-comparison in {elapsed} seconds&#34;)
+        return results
+
+    def _process_meta_optimizer(self, name):
+        np.random.seed()
+        meta_optimizer = self.meta_optimizers[name]
+        results = []
+        for rep in range(self.num_repetitions):
+            with lock:
+                print(f&#34;Running meta-optimizer {name} on base &#34; \
+                      f&#34;study {rep+1} of {self.num_repetitions}&#34;)
+            comp_data = self._base_comparison_data.xs(rep, level=&#34;study_id&#34;)
+            meta_optimizer.run(comp_data, function_order=self._order)
+            res = meta_optimizer.get_results()
+            res[&#34;arms&#34;] = meta_optimizer.get_history()[&#34;arms&#34;]
+            results.append(res)
+        return results
+
+    def _calculate_order(self):
+        assert self._dbid is not None
+        if self.alternative_order:
+            functions = self._base_comparison_data.index.unique(&#34;function&#34;).to_list()
+            mlp = list(filter(lambda x: x.startswith(&#34;MLP&#34;), functions))
+            lasso = list(filter(lambda x: x.startswith(&#34;lasso&#34;), functions))
+            order = utils.interleave_lists(mlp, lasso)
+            self._order = order</code></pre>
+</details>
+<h3>Static methods</h3>
+<dl>
+<dt id="blackboxbandits.compare.MetaOptimizerComparison.from_base_comparison_setup"><code class="name flex">
+<span>def <span class="ident">from_base_comparison_setup</span></span>(<span>meta_optimizers: Dict[str, <a title="blackboxbandits.meta.AbstractMetaOptimizer" href="meta.html#blackboxbandits.meta.AbstractMetaOptimizer">AbstractMetaOptimizer</a>], base_optimizers: List[str], classifiers: List[str], datasets: List[str], metrics: List[str], num_calls: int, num_repetitions: int, db_root: str, datasets_root: Optional[str] = None, parallel_base: bool = False, parallel_meta: bool = False, num_workers: Optional[int] = None, num_meta_repetitions: int = 1, alternative_order: bool = False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Construct from base comparison setup info.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>meta_optimizers</code></strong> :&ensp;<code>Dict[str, meta.AbstractMetaOptimizer]</code></dt>
+<dd>Dictionary whose values are the instantiated meta-optimizers to include
+in this comparison (these will choose combinations of the base optimizers
+defined below) and whose keys are the names used to refer to them.</dd>
+<dt><strong><code>base_optimizers</code></strong> :&ensp;<code>List[str]</code></dt>
+<dd>List of standard optimizer names known to Bayesmark to be used as the
+base optimizers for this comparison.</dd>
+<dt><strong><code>classifiers</code></strong> :&ensp;<code>List[str]</code></dt>
+<dd>List of sklearn classification methods known to Bayesmark.</dd>
+<dt><strong><code>datasets</code></strong> :&ensp;<code>List[str]</code></dt>
+<dd>List of classification/regression datasets known to Bayesmark.</dd>
+<dt><strong><code>metrics</code></strong> :&ensp;<code>List[str]</code></dt>
+<dd>List of loss functions known to Bayesmark. Must include at least one
+regression and one classification loss function if <code>datasets</code> includes
+both types of task.</dd>
+<dt><strong><code>num_calls</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of function evaluations allowed by each optimizer on each task.</dd>
+<dt><strong><code>num_repetitions</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of times to repeat the entire experiment for reliability.</dd>
+<dt><strong><code>db_root</code></strong> :&ensp;<code>str</code></dt>
+<dd>Path to root folder in which a folder for this experiment's data will
+be created.</dd>
+<dt><strong><code>datasets_root</code></strong> :&ensp;<code>Optional[str]</code>, optional</dt>
+<dd>Path to directory containing csv files for referenced datasets. Defaults
+to None.</dd>
+<dt><strong><code>parallel_base</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to run the base experiments as a pool of tasks across multiple
+worker threads or not. Defaults to False.</dd>
+<dt><strong><code>parallel_meta</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to run the meta experiments as a pool of tasks across multiple
+worker threads or not. Defaults to False.</dd>
+<dt><strong><code>num_workers</code></strong> :&ensp;<code>Optional[int]</code>, optional</dt>
+<dd>Number of worker processes to use if parallelisation is enabled. If not
+specified defaults to the number of cpu cores.</dd>
+<dt><strong><code>num_meta_repetitions</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Number of times to re-run the meta-optimizers on each base optimizer
+study; averaging over meta-optimizer randomness. Defaults to 1.</dd>
+<dt><strong><code>alternative_order</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+to interleave MLP with lasso, instead of all MLP then all lasso.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def from_base_comparison_setup(cls,
+                               meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
+                               base_optimizers: List[str],
+                               classifiers: List[str],
+                               datasets: List[str],
+                               metrics: List[str],
+                               num_calls: int,
+                               num_repetitions: int,
+                               db_root: str,
+                               datasets_root: Optional[str] = None,
+                               parallel_base: bool = False,
+                               parallel_meta: bool = False,
+                               num_workers: Optional[int] = None,
+                               num_meta_repetitions: int = 1,
+                               alternative_order: bool = False):
+    &#34;&#34;&#34;Construct from base comparison setup info.
+    
+    Parameters
+    ----------
+    meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+        Dictionary whose values are the instantiated meta-optimizers to include
+        in this comparison (these will choose combinations of the base optimizers
+        defined below) and whose keys are the names used to refer to them.
+    base_optimizers : List[str]
+        List of standard optimizer names known to Bayesmark to be used as the
+        base optimizers for this comparison.
+    classifiers : List[str]
+        List of sklearn classification methods known to Bayesmark.
+    datasets : List[str]
+        List of classification/regression datasets known to Bayesmark.
+    metrics : List[str]
+        List of loss functions known to Bayesmark. Must include at least one
+        regression and one classification loss function if `datasets` includes
+        both types of task.
+    num_calls : int
+        Number of function evaluations allowed by each optimizer on each task.
+    num_repetitions : int
+        Number of times to repeat the entire experiment for reliability.
+    db_root : str
+        Path to root folder in which a folder for this experiment&#39;s data will
+        be created.
+    datasets_root : Optional[str], optional
+        Path to directory containing csv files for referenced datasets. Defaults
+        to None.
+    parallel_base : bool, optional
+        Whether to run the base experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    parallel_meta : bool, optional
+        Whether to run the meta experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
+    num_meta_repetitions : int, optional
+        Number of times to re-run the meta-optimizers on each base optimizer
+        study; averaging over meta-optimizer randomness. Defaults to 1.
+    alternative_order : bool, optional
+        ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+        to interleave MLP with lasso, instead of all MLP then all lasso.
+    &#34;&#34;&#34;
+
+    instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta,
+                   num_workers, num_meta_repetitions, alternative_order)
+
+    instance.base_optimizers = base_optimizers
+    instance.classifiers = classifiers
+    instance.datasets = datasets
+    instance.metrics = metrics
+    instance.num_calls = num_calls
+    instance.datasets_root = datasets_root
+    instance.parallel_base = parallel_base
+
+    instance._base_comparison_info_ready = True</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.MetaOptimizerComparison.from_precomputed_base_comparison"><code class="name flex">
+<span>def <span class="ident">from_precomputed_base_comparison</span></span>(<span>dbid: str, meta_optimizers: Dict[str, <a title="blackboxbandits.meta.AbstractMetaOptimizer" href="meta.html#blackboxbandits.meta.AbstractMetaOptimizer">AbstractMetaOptimizer</a>], db_root: str, parallel_meta: bool = False, num_workers: Optional[int] = None, num_meta_repetitions: int = 1, alternative_order: bool = False) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Construct by loading data from a previously run comparison of the base
+optimizers for this experiment.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>dbid</code></strong> :&ensp;<code>str</code></dt>
+<dd>The DBID for the saved data to be loaded.</dd>
+<dt><strong><code>meta_optimizers</code></strong> :&ensp;<code>Dict[str, meta.AbstractMetaOptimizer]</code></dt>
+<dd>Dictionary whose values are the instantiated meta-optimizers to include
+in this comparison (these will choose combinations of the base optimizers
+defined below) and whose keys are the names used to refer to them.</dd>
+<dt><strong><code>db_root</code></strong> :&ensp;<code>str</code></dt>
+<dd>Path to root folder in which a folder for this experiment's data will
+be created.</dd>
+<dt><strong><code>parallel_meta</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to run the meta experiments as a pool of tasks across multiple
+worker threads or not. Defaults to False.</dd>
+<dt><strong><code>num_workers</code></strong> :&ensp;<code>Optional[int]</code>, optional</dt>
+<dd>Number of worker processes to use if parallelisation is enabled. If not
+specified defaults to the number of cpu cores.</dd>
+<dt><strong><code>num_meta_repetitions</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Number of times to re-run the meta-optimizers on each base optimizer
+study; averaging over meta-optimizer randomness. Defaults to 1.</dd>
+<dt><strong><code>alternative_order</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+to interleave MLP with lasso, instead of all MLP then all lasso.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@classmethod
+def from_precomputed_base_comparison(cls,
+                                     dbid: str,
+                                     meta_optimizers: Dict[str, meta.AbstractMetaOptimizer],
+                                     db_root: str,
+                                     parallel_meta: bool = False,
+                                     num_workers: Optional[int] = None,
+                                     num_meta_repetitions: int = 1,
+                                     alternative_order: bool = False) -&gt; None:
+    &#34;&#34;&#34;Construct by loading data from a previously run comparison of the base
+    optimizers for this experiment.
+
+    Parameters
+    ----------
+    dbid : str
+        The DBID for the saved data to be loaded.
+    meta_optimizers : Dict[str, meta.AbstractMetaOptimizer]
+        Dictionary whose values are the instantiated meta-optimizers to include
+        in this comparison (these will choose combinations of the base optimizers
+        defined below) and whose keys are the names used to refer to them.
+    db_root : str
+        Path to root folder in which a folder for this experiment&#39;s data will
+        be created.
+    parallel_meta : bool, optional
+        Whether to run the meta experiments as a pool of tasks across multiple
+        worker threads or not. Defaults to False.
+    num_workers : Optional[int], optional
+        Number of worker processes to use if parallelisation is enabled. If not
+        specified defaults to the number of cpu cores.
+    num_meta_repetitions : int, optional
+        Number of times to re-run the meta-optimizers on each base optimizer
+        study; averaging over meta-optimizer randomness. Defaults to 1.
+    alternative_order : bool, optional
+        ONLY VALID FOR THE PENN DATASET BASE COMPARISON. Changes the problem order
+        to interleave MLP with lasso, instead of all MLP then all lasso.
+    &#34;&#34;&#34;
+    data = BaseOptimizerComparison.get_results_for_dbid(dbid, db_root)
+    num_repetitions = len(data.index.unique(level=&#34;study_id&#34;).to_list())
+    instance = cls(meta_optimizers, num_repetitions, db_root, parallel_meta,
+                   num_workers, num_meta_repetitions, alternative_order)
+    instance._dbid = dbid
+    instance._base_comparison_data = data
+    instance._calculate_order()
+    return instance</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="blackboxbandits.compare.MetaOptimizerComparison.full_results"><code class="name flex">
+<span>def <span class="ident">full_results</span></span>(<span>self) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get mean and std (over meta-repetitions) of the individual meta-optimizer
+performances (for each problem separately).</p>
+<p>Must have run the meta-comparison first. Averages are taken over base study
+repetitions first.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Tuple[pd.DataFrame, pd.DataFrame]</code></dt>
+<dd>The first dataframe contains the mean validation and test scores, the second
+the standard deviations.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def full_results(self) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Get mean and std (over meta-repetitions) of the individual meta-optimizer
+    performances (for each problem separately).
+    
+    Must have run the meta-comparison first. Averages are taken over base study
+    repetitions first.
+    
+    Returns
+    -------
+    Tuple[pd.DataFrame, pd.DataFrame]
+        The first dataframe contains the mean validation and test scores, the second
+        the standard deviations.
+    &#34;&#34;&#34;
+    assert self._meta_comparison_completed == True, \
+         &#34;Must complete comparison before getting results&#34;
+    
+    # Avg over base studies
+    samples = self.meta_results.drop(columns=&#34;arms&#34;).groupby([&#34;optimizer&#34;, &#34;function&#34;, &#34;meta_rep&#34;]).mean() \
+        [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+    
+    # Stats over meta repetitions
+    mean = samples.groupby([&#34;optimizer&#34;, &#34;function&#34;]).mean()
+    std = samples.groupby([&#34;optimizer&#34;, &#34;function&#34;]).std()
+    
+    # Get base result means to add
+    base_results = self._base_comparison_data.xs(&#34;score&#34;, level=1, axis=1) \
+                                    .rename(columns=lambda x: x+&#34;_score&#34;) \
+                                    .groupby([&#34;optimizer&#34;, &#34;function&#34;]).mean() \
+                                    [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+    mean = pd.concat([base_results, mean])
+    
+    return mean, std</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.MetaOptimizerComparison.get_dbid"><code class="name flex">
+<span>def <span class="ident">get_dbid</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get the unique DBID associated with the base optimizer comparison
+for this experiment.</p>
+<p>Must run or load base comparison first.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>int</code></dt>
+<dd>The DBID of this base comparison for this experiment.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_dbid(self):
+    &#34;&#34;&#34;Get the unique DBID associated with the base optimizer comparison
+    for this experiment.
+
+    Must run or load base comparison first.
+
+    Returns
+    -------
+    int
+        The DBID of this base comparison for this experiment.
+    &#34;&#34;&#34;
+    assert self._dbid is not None, &#34;Must run or load base comparison first.&#34;
+    return self._dbid</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.MetaOptimizerComparison.run_base_comparison"><code class="name flex">
+<span>def <span class="ident">run_base_comparison</span></span>(<span>self) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run the base optimizers on the relevant tasks for this experiment.</p>
+<p>May take a while.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run_base_comparison(self) -&gt; None:
+    &#34;&#34;&#34;Run the base optimizers on the relevant tasks for this experiment.
+
+    May take a while.
+    &#34;&#34;&#34;
+    assert self._base_comparison_info_ready, &#34;Must construct using `from_base_comparison_setup`.&#34;
+
+    base_comparison = BaseOptimizerComparison(
+        self.base_optimizers,
+        self.classifiers,
+        self.datasets,
+        self.metrics,
+        self.num_calls,
+        self.num_repetitions,
+        self.db_root,
+        self.datasets_root,
+        self.parallel_base,
+        self.num_workers)
+    base_comparison.run()
+    self._dbid = base_comparison.get_dbid()
+    self._base_comparison_data = base_comparison.get_results()
+    self._calculate_order()</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.MetaOptimizerComparison.run_meta_comparison"><code class="name flex">
+<span>def <span class="ident">run_meta_comparison</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run the comparison of meta-optimizers over the base optimizers.</p>
+<p>Must have first run or loaded the base optimizer comparison.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run_meta_comparison(self):
+    &#34;&#34;&#34;Run the comparison of meta-optimizers over the base optimizers.
+
+    Must have first run or loaded the base optimizer comparison.
+    &#34;&#34;&#34;
+    assert self._dbid is not None, &#34;Must run or load base comparison first.&#34;
+    results = [self._single_meta_run(i) for i in range(self.num_meta_repetitions)]
+    self.meta_results = pd.concat(results, keys=range(len(results)), names=[&#34;meta_rep&#34;])
+    
+    self._meta_comparison_completed = True</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.MetaOptimizerComparison.summary"><code class="name flex">
+<span>def <span class="ident">summary</span></span>(<span>self) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get mean and std (over meta-repetitions) of the average meta-optimizer
+scores (over all problems).</p>
+<p>Must have run the meta-comparison first. Averages are taken over base study
+repetitions first.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Tuple[pd.DataFrame, pd.DataFrame]</code></dt>
+<dd>The first dataframe contains the mean validation and test scores, the second
+the standard deviations.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def summary(self) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Get mean and std (over meta-repetitions) of the average meta-optimizer
+    scores (over all problems).
+    
+    Must have run the meta-comparison first. Averages are taken over base study
+    repetitions first.
+    
+    Returns
+    -------
+    Tuple[pd.DataFrame, pd.DataFrame]
+        The first dataframe contains the mean validation and test scores, the second
+        the standard deviations.
+    &#34;&#34;&#34;
+    
+    # Avg over base studies and problems
+    samples = self.meta_results.drop(columns=&#34;arms&#34;).groupby([&#34;optimizer&#34;, &#34;meta_rep&#34;]).mean() \
+        [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+    
+    # Stats over meta repetitions
+    mean = samples.groupby([&#34;optimizer&#34;]).mean()
+    std = samples.groupby([&#34;optimizer&#34;]).std()
+    
+    # Get base result means to add
+    base_results = self._base_comparison_data.xs(&#34;score&#34;, level=1, axis=1) \
+                                    .rename(columns=lambda x: x+&#34;_score&#34;) \
+                                    .groupby([&#34;optimizer&#34;]).mean() \
+                                    [[&#34;visible_score&#34;, &#34;generalization_score&#34;]]
+    mean = pd.concat([base_results, mean])
+    
+    return mean, std</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="blackboxbandits.compare.SyntheticComparison"><code class="flex name class">
+<span>class <span class="ident">SyntheticComparison</span></span>
+<span>(</span><span>environment: <a title="blackboxbandits.synthetic.AbstractEnvironment" href="synthetic.html#blackboxbandits.synthetic.AbstractEnvironment">AbstractEnvironment</a>, algos: Dict[str, <a title="blackboxbandits.synthetic.AbstractAlgorithm" href="synthetic.html#blackboxbandits.synthetic.AbstractAlgorithm">AbstractAlgorithm</a>], parallel: bool = False, num_workers: Optional[int] = None, num_repetitions: int = 1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Class implementing comparison of algorithms on synthetic rewards.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>environment</code></strong> :&ensp;<code>synthetic.AbstractEnvironment</code></dt>
+<dd>An environment specification to generate synthetic rewards.</dd>
+<dt><strong><code>algos</code></strong> :&ensp;<code>Dict[str, synthetic.AbstractAlgorithm]</code></dt>
+<dd>A dict of named algorithms to run on the generated synthetic rewards.</dd>
+<dt><strong><code>parallel</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to use multiple processes for evaluation. Defaults to False.</dd>
+<dt><strong><code>num_workers</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>How many worker processes to use, if <code>parallel</code> is True. If not specified,
+defaults to the number of available cores.</dd>
+<dt><strong><code>num_repetitions</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>How many times to repeat the evaluation for reliability. Repetitions are
+over randomness in algorithms and in the environment. Defaults to 1.</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<p>Same as parameters.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class SyntheticComparison:
+    &#34;&#34;&#34;Class implementing comparison of algorithms on synthetic rewards.
+
+    Parameters
+    ----------
+    environment : synthetic.AbstractEnvironment
+        An environment specification to generate synthetic rewards.
+    algos : Dict[str, synthetic.AbstractAlgorithm]
+        A dict of named algorithms to run on the generated synthetic rewards.
+    parallel: bool, optional
+        Whether to use multiple processes for evaluation. Defaults to False.
+    num_workers : int, optional
+        How many worker processes to use, if `parallel` is True. If not specified,
+        defaults to the number of available cores.
+    num_repetitions : int, optional
+        How many times to repeat the evaluation for reliability. Repetitions are
+        over randomness in algorithms and in the environment. Defaults to 1.
+
+    Attributes
+    ----------
+    Same as parameters.
+    &#34;&#34;&#34;
+
+    def __init__(self,
+                 environment: synthetic.AbstractEnvironment,
+                 algos: Dict[str, synthetic.AbstractAlgorithm],
+                 parallel: bool = False,
+                 num_workers: Optional[int] = None,
+                 num_repetitions: int = 1):
+        self.environment = environment
+        self.algos = algos
+        self.parallel = parallel
+        self.num_workers = num_workers
+        self.num_repetitions = num_repetitions
+        self._has_run = False
+
+    def run(self) -&gt; None:
+        &#34;&#34;&#34;Run the comparison of algorithms.
+        &#34;&#34;&#34;
+        results = [self._single_run(rep) for rep in range(self.num_repetitions)]
+        self.results = pd.concat(results,
+                                 keys=range(len(results)),
+                                 names=[&#34;rep&#34;])
+        self._has_run = True
+
+    def full_results(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get mean and std (over trials) of individual algorithm
+        performances on each round separately.
+        
+        Must have run the comparison first.
+        
+        Returns
+        -------
+        pd.DataFrame
+        &#34;&#34;&#34;
+        assert self._has_run, &#34;Must run first.&#34;
+        samples = self.results.loc[:,&#34;score&#34;] # Series
+
+        mean = samples.groupby([&#34;algo&#34;, &#34;round&#34;]).mean()
+        std = samples.groupby([&#34;algo&#34;, &#34;round&#34;]).std()
+        return pd.DataFrame({&#34;mean&#34;: mean, &#34;std&#34;: std})
+
+    def summary(self) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;Get mean and std (over trials) of average algorithm
+        scores (over all rounds).
+        
+        Must have run the comparison first.
+        
+        Returns
+        -------
+        pd.DataFrame
+        &#34;&#34;&#34;
+        assert self._has_run, &#34;Must run first.&#34;
+        samples = self.results.loc[:,&#34;score&#34;].groupby([&#34;algo&#34;,&#34;rep&#34;]).mean()
+
+        mean = samples.groupby(&#34;algo&#34;).mean()
+        std = samples.groupby(&#34;algo&#34;).std()
+        return pd.DataFrame({&#34;mean&#34;: mean, &#34;std&#34;: std})
+
+    def _single_run(self, rep):
+        to_print = f&#34;Starting trial {rep+1} of {self.num_repetitions}&#34;
+        print(to_print)
+        print(&#34;-&#34;*len(to_print))
+        start = time.time()
+
+        self._rewards = self.environment.generate_rewards()
+
+        global lock
+        lock = Lock()
+        if self.parallel:
+            with Pool(self.num_workers) as pool:
+                results = pool.map(self._process_algo, self.algos, chunksize=1)
+        else:
+            results = map(self._process_algo, self.algos)
+
+        results = pd.concat(results, keys=self.algos.keys(), names=[&#34;algo&#34;])
+
+        end = time.time()
+        elapsed = end - start
+        print(f&#34;Finished trial in {elapsed} seconds&#34;)
+        return results
+
+    def _process_algo(self, name):
+        np.random.seed()
+        with lock:
+            print(f&#34;Running algorithm {name}&#34;)
+        algo = self.algos[name]
+        algo.run(self._rewards)
+        scores = algo.get_results()
+        history = list(map(lambda x: &#34;,&#34;.join(map(str,x)), algo.get_history()))
+        df = pd.DataFrame({&#34;score&#34;: scores, &#34;choice&#34;: history},
+                            index=self._rewards.index)
+        df.index.name = &#34;round&#34;
+        return df</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="blackboxbandits.compare.SyntheticComparison.full_results"><code class="name flex">
+<span>def <span class="ident">full_results</span></span>(<span>self) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get mean and std (over trials) of individual algorithm
+performances on each round separately.</p>
+<p>Must have run the comparison first.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def full_results(self) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Get mean and std (over trials) of individual algorithm
+    performances on each round separately.
+    
+    Must have run the comparison first.
+    
+    Returns
+    -------
+    pd.DataFrame
+    &#34;&#34;&#34;
+    assert self._has_run, &#34;Must run first.&#34;
+    samples = self.results.loc[:,&#34;score&#34;] # Series
+
+    mean = samples.groupby([&#34;algo&#34;, &#34;round&#34;]).mean()
+    std = samples.groupby([&#34;algo&#34;, &#34;round&#34;]).std()
+    return pd.DataFrame({&#34;mean&#34;: mean, &#34;std&#34;: std})</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.SyntheticComparison.run"><code class="name flex">
+<span>def <span class="ident">run</span></span>(<span>self) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run the comparison of algorithms.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run(self) -&gt; None:
+    &#34;&#34;&#34;Run the comparison of algorithms.
+    &#34;&#34;&#34;
+    results = [self._single_run(rep) for rep in range(self.num_repetitions)]
+    self.results = pd.concat(results,
+                             keys=range(len(results)),
+                             names=[&#34;rep&#34;])
+    self._has_run = True</code></pre>
+</details>
+</dd>
+<dt id="blackboxbandits.compare.SyntheticComparison.summary"><code class="name flex">
+<span>def <span class="ident">summary</span></span>(<span>self) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get mean and std (over trials) of average algorithm
+scores (over all rounds).</p>
+<p>Must have run the comparison first.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def summary(self) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;Get mean and std (over trials) of average algorithm
+    scores (over all rounds).
+    
+    Must have run the comparison first.
+    
+    Returns
+    -------
+    pd.DataFrame
+    &#34;&#34;&#34;
+    assert self._has_run, &#34;Must run first.&#34;
+    samples = self.results.loc[:,&#34;score&#34;].groupby([&#34;algo&#34;,&#34;rep&#34;]).mean()
+
+    mean = samples.groupby(&#34;algo&#34;).mean()
+    std = samples.groupby(&#34;algo&#34;).std()
+    return pd.DataFrame({&#34;mean&#34;: mean, &#34;std&#34;: std})</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="blackboxbandits" href="index.html">blackboxbandits</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="blackboxbandits.compare.BaseOptimizerComparison" href="#blackboxbandits.compare.BaseOptimizerComparison">BaseOptimizerComparison</a></code></h4>
+<ul class="">
+<li><code><a title="blackboxbandits.compare.BaseOptimizerComparison.get_dbid" href="#blackboxbandits.compare.BaseOptimizerComparison.get_dbid">get_dbid</a></code></li>
+<li><code><a title="blackboxbandits.compare.BaseOptimizerComparison.get_results" href="#blackboxbandits.compare.BaseOptimizerComparison.get_results">get_results</a></code></li>
+<li><code><a title="blackboxbandits.compare.BaseOptimizerComparison.get_results_for_dbid" href="#blackboxbandits.compare.BaseOptimizerComparison.get_results_for_dbid">get_results_for_dbid</a></code></li>
+<li><code><a title="blackboxbandits.compare.BaseOptimizerComparison.run" href="#blackboxbandits.compare.BaseOptimizerComparison.run">run</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="blackboxbandits.compare.MetaOptimizerComparison" href="#blackboxbandits.compare.MetaOptimizerComparison">MetaOptimizerComparison</a></code></h4>
+<ul class="">
+<li><code><a title="blackboxbandits.compare.MetaOptimizerComparison.from_base_comparison_setup" href="#blackboxbandits.compare.MetaOptimizerComparison.from_base_comparison_setup">from_base_comparison_setup</a></code></li>
+<li><code><a title="blackboxbandits.compare.MetaOptimizerComparison.from_precomputed_base_comparison" href="#blackboxbandits.compare.MetaOptimizerComparison.from_precomputed_base_comparison">from_precomputed_base_comparison</a></code></li>
+<li><code><a title="blackboxbandits.compare.MetaOptimizerComparison.full_results" href="#blackboxbandits.compare.MetaOptimizerComparison.full_results">full_results</a></code></li>
+<li><code><a title="blackboxbandits.compare.MetaOptimizerComparison.get_dbid" href="#blackboxbandits.compare.MetaOptimizerComparison.get_dbid">get_dbid</a></code></li>
+<li><code><a title="blackboxbandits.compare.MetaOptimizerComparison.run_base_comparison" href="#blackboxbandits.compare.MetaOptimizerComparison.run_base_comparison">run_base_comparison</a></code></li>
+<li><code><a title="blackboxbandits.compare.MetaOptimizerComparison.run_meta_comparison" href="#blackboxbandits.compare.MetaOptimizerComparison.run_meta_comparison">run_meta_comparison</a></code></li>
+<li><code><a title="blackboxbandits.compare.MetaOptimizerComparison.summary" href="#blackboxbandits.compare.MetaOptimizerComparison.summary">summary</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="blackboxbandits.compare.SyntheticComparison" href="#blackboxbandits.compare.SyntheticComparison">SyntheticComparison</a></code></h4>
+<ul class="">
+<li><code><a title="blackboxbandits.compare.SyntheticComparison.full_results" href="#blackboxbandits.compare.SyntheticComparison.full_results">full_results</a></code></li>
+<li><code><a title="blackboxbandits.compare.SyntheticComparison.run" href="#blackboxbandits.compare.SyntheticComparison.run">run</a></code></li>
+<li><code><a title="blackboxbandits.compare.SyntheticComparison.summary" href="#blackboxbandits.compare.SyntheticComparison.summary">summary</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
